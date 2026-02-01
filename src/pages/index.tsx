@@ -28,7 +28,7 @@ function HomepageHeader() {
           <Link
             className={clsx('button button--secondary button--lg', styles.heroButton)}
             to="/wiki/overview">
-            Browse the Wiki
+            Hake Homelab
           </Link>
         </div>
       </div>

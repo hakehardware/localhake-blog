@@ -7,7 +7,7 @@ description: General overview of Hake's Homelab infrastructure
 
 # Homelab Overview
 
-Welcome to the Hake's Homelab Wiki! This documentation provides a comprehensive look at the homelab infrastructure powering the Hake Hardware YouTube channel.
+Welcome to Hake Homelab! This documentation provides a comprehensive look at the homelab infrastructure powering the Hake Hardware YouTube channel.
 
 ## What is a Homelab?
 
@@ -22,9 +22,9 @@ This homelab serves multiple purposes:
 - **Self-Hosted Services**: Running personal applications and services
 - **Home Automation**: Managing smart home devices and automation
 
-## Wiki Sections
+## Documentation Sections
 
-This wiki is organized into the following sections:
+This documentation is organized into the following sections:
 
 | Section | Description |
 |---------|-------------|
@@ -35,7 +35,7 @@ This wiki is organized into the following sections:
 
 ## Getting Started
 
-If you're new to homelabbing, check out the [Blog](/blog) for step-by-step tutorials and guides. The wiki serves as reference documentation for the specific setup used in this homelab.
+If you're new to homelabbing, check out the [Blog](/blog) for step-by-step tutorials and guides. This documentation serves as reference for the specific setup used in this homelab.
 
 :::tip
 Looking for a specific tutorial? Use the search function or browse the blog for detailed walkthroughs.

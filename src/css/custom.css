@@ -221,14 +221,17 @@ pre {
   border-color: #ffc033;
 }
 
-/* Secondary buttons with green */
+/* Secondary buttons - improved contrast */
 [data-theme='dark'] .button--secondary {
-  border-color: #00ff00;
-  color: #00ff00;
+  border-color: #ffffff;
+  color: #ffffff;
+  background-color: transparent;
 }
 
 [data-theme='dark'] .button--secondary:hover {
-  background-color: rgba(0, 255, 0, 0.1);
+  background-color: rgba(255, 255, 255, 0.1);
+  border-color: #00ff00;
+  color: #00ff00;
 }
 
 /* ============================================
