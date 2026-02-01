@@ -56,9 +56,11 @@ const config: Config = {
         blog: {
           showReadingTime: true,
           feedOptions: {
-            type: ['rss', 'atom'],
+            type: 'all',
+            copyright: `Copyright © ${new Date().getFullYear()} Hake's Homelab`,
             xslt: true,
           },
+          blogSidebarCount: 'ALL',
           // Please change this to your repo.
           // Remove this to remove the "edit this page" links.
           editUrl:
@@ -87,7 +89,7 @@ const config: Config = {
       title: "Hake's Homelab",
       items: [
         { to: '/blog', label: 'Blog', position: 'left' },
-        { to: '/wiki/intro', label: 'Wiki', position: 'left' },
+        { to: '/wiki/overview', label: 'Wiki', position: 'left' },
         {
           href: 'https://youtube.com/@HakeHardware',
           label: 'YouTube',
@@ -112,7 +114,7 @@ const config: Config = {
             },
             {
               label: 'Wiki',
-              to: '/wiki/intro',
+              to: '/wiki/overview',
             },
           ],
         },
@@ -135,7 +137,68 @@ const config: Config = {
     prism: {
       theme: prismThemes.github,
       darkTheme: prismThemes.dracula,
+      additionalLanguages: ['bash', 'yaml', 'json', 'docker', 'python'],
     },
+
+    // ==========================================================================
+    // SEARCH CONFIGURATION
+    // ==========================================================================
+    //
+    // Option 1: Algolia DocSearch (Recommended for production)
+    // ---------------------------------------------------------
+    // Algolia DocSearch provides fast, typo-tolerant search across all site content.
+    // To set up Algolia DocSearch:
+    // 1. Apply for DocSearch at https://docsearch.algolia.com/apply/
+    // 2. Once approved, you'll receive appId, apiKey, and indexName
+    // 3. Uncomment the algolia block below and replace placeholder values
+    //
+    // algolia: {
+    //   // The application ID provided by Algolia
+    //   appId: 'YOUR_APP_ID',
+    //
+    //   // Public API key: safe to commit (search-only, no write access)
+    //   apiKey: 'YOUR_SEARCH_API_KEY',
+    //
+    //   // The index name for your site
+    //   indexName: 'hakes-homelab',
+    //
+    //   // Optional: Enable contextual search (scopes results to current docs version/language)
+    //   contextualSearch: true,
+    //
+    //   // Optional: Algolia search parameters
+    //   // searchParameters: {},
+    //
+    //   // Optional: Path for search page (enabled by default at /search)
+    //   // searchPagePath: 'search',
+    // },
+    //
+    // Option 2: Local Search Plugin (Alternative if Algolia is not available)
+    // ------------------------------------------------------------------------
+    // If you prefer not to use Algolia or are waiting for DocSearch approval,
+    // you can use the @easyops-cn/docusaurus-search-local plugin instead.
+    //
+    // Installation:
+    //   pnpm add @easyops-cn/docusaurus-search-local
+    //
+    // Then add to the `themes` array in this config file:
+    //   themes: [
+    //     [
+    //       '@easyops-cn/docusaurus-search-local',
+    //       {
+    //         hashed: true,
+    //         language: ['en'],
+    //         indexDocs: true,
+    //         indexBlog: true,
+    //         indexPages: false,
+    //         docsRouteBasePath: '/wiki',
+    //         blogRouteBasePath: '/blog',
+    //       },
+    //     ],
+    //   ],
+    //
+    // Note: Local search builds an index at build time, so search works offline
+    // but may increase build time for large sites.
+    // ==========================================================================
   } satisfies Preset.ThemeConfig,
 };
 

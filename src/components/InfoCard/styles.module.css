@@ -1,0 +1,99 @@
+/* InfoCard Component Styles */
+/* Matches 80s hacker aesthetic with green/amber accents */
+
+.infoCard {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 1rem 1.25rem;
+  margin-bottom: 1.5rem;
+  background: var(--ifm-background-surface-color, rgba(0, 0, 0, 0.3));
+  border: 1px solid var(--ifm-color-primary-dark, #00cc00);
+  border-radius: 8px;
+  font-family: var(--ifm-font-family-monospace);
+  font-size: 0.9rem;
+}
+
+/* Difficulty Indicator Styles */
+.difficultyContainer {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.difficultyLabel {
+  color: var(--ifm-color-content-secondary, #b0b0b0);
+}
+
+.difficultyDots {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.difficultyDot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid var(--ifm-color-primary, #00ff00);
+  transition: background-color 0.2s ease;
+}
+
+.difficultyDot.filled {
+  background-color: var(--ifm-color-primary, #00ff00);
+}
+
+.difficultyDot.empty {
+  background-color: transparent;
+}
+
+/* Time Display Styles */
+.timeContainer {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--ifm-color-content, #ffffff);
+}
+
+.timeIcon {
+  font-size: 1rem;
+}
+
+.timeValue {
+  color: var(--ifm-color-primary-light, #33ff33);
+  font-weight: 500;
+}
+
+/* Video Link Styles */
+.videoLink {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.8rem;
+  background: var(--ifm-color-primary-darkest, #004400);
+  border: 1px solid var(--ifm-color-primary, #00ff00);
+  border-radius: 4px;
+  color: var(--ifm-color-primary-lightest, #66ff66);
+  text-decoration: none;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.videoLink:hover {
+  background: var(--ifm-color-primary-dark, #00cc00);
+  color: var(--ifm-background-color, #000000);
+  text-decoration: none;
+}
+
+.videoIcon {
+  font-size: 0.9rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 600px) {
+  .infoCard {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+}

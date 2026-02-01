@@ -1,0 +1,259 @@
+---
+title: "How to Set Up Paperless-ngx with AI Document Processing"
+slug: paperless-ngx-ai-setup
+authors: [hake]
+tags: [paperless, ai, docker, self-hosted, document-management]
+date: 2024-01-15
+difficulty: 3
+time: 45
+videoUrl: https://youtu.be/dQw4w9WgXcQ
+---
+
+<InfoCard difficulty={3} time={45} videoUrl="https://youtu.be/dQw4w9WgXcQ" />
+
+In this tutorial, we'll set up **Paperless-ngx** - a powerful document management system that helps you go paperless. We'll also integrate AI capabilities using Paperless AI and Paperless GPT for automatic document classification and tagging.
+
+{/* truncate */}
+
+## What is Paperless-ngx?
+
+Paperless-ngx is a community-supported open-source document management system that transforms your physical documents into a searchable online archive. It features:
+
+- **OCR** (Optical Character Recognition) for scanned documents
+- **Full-text search** across all your documents
+- **Automatic tagging** and classification
+- **Email integration** for automatic document ingestion
+- **Mobile-friendly** web interface
+
+<YouTube url="https://youtu.be/dQw4w9WgXcQ" title="Paperless-ngx Setup Tutorial" />
+
+## Prerequisites
+
+Before we begin, make sure you have:
+
+- A Linux server (Ubuntu 22.04 recommended)
+- Docker and Docker Compose installed
+- At least 2GB of RAM
+- Basic command line knowledge
+
+:::tip
+If you don't have Docker installed yet, check out the official [Docker installation guide](https://docs.docker.com/engine/install/) for a quick setup.
+:::
+
+## Step 1: Create the Project Directory
+
+First, let's create a directory structure for our Paperless-ngx installation:
+
+```bash
+# Create the main directory
+mkdir -p ~/docker/paperless-ngx
+cd ~/docker/paperless-ngx
+
+# Create subdirectories for data persistence
+mkdir -p data media export consume
+```
+
+## Step 2: Create the Docker Compose File
+
+Create a `docker-compose.yml` file with the following configuration:
+
+```yaml title="docker-compose.yml" showLineNumbers
+version: "3.8"
+
+services:
+  broker:
+    image: docker.io/library/redis:7
+    restart: unless-stopped
+    volumes:
+      - redisdata:/data
+
+  db:
+    image: docker.io/library/postgres:15
+    restart: unless-stopped
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: paperless
+      POSTGRES_USER: paperless
+      # highlight-next-line
+      POSTGRES_PASSWORD: your_secure_password_here
+
+  webserver:
+    image: ghcr.io/paperless-ngx/paperless-ngx:latest
+    restart: unless-stopped
+    depends_on:
+      - db
+      - broker
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/usr/src/paperless/data
+      - ./media:/usr/src/paperless/media
+      - ./export:/usr/src/paperless/export
+      - ./consume:/usr/src/paperless/consume
+    # highlight-start
+    environment:
+      PAPERLESS_REDIS: redis://broker:6379
+      PAPERLESS_DBHOST: db
+      PAPERLESS_DBPASS: your_secure_password_here
+      PAPERLESS_SECRET_KEY: your_secret_key_here
+      PAPERLESS_OCR_LANGUAGE: eng
+      PAPERLESS_TIME_ZONE: America/New_York
+    # highlight-end
+
+volumes:
+  pgdata:
+  redisdata:
+```
+
+:::warning
+Make sure to replace `your_secure_password_here` and `your_secret_key_here` with strong, unique passwords!
+:::
+
+## Step 3: Generate a Secret Key
+
+Generate a secure secret key for Paperless-ngx:
+
+```bash
+# Generate a random secret key
+openssl rand -base64 32
+```
+
+Copy the output and replace `your_secret_key_here` in your `docker-compose.yml`.
+
+## Step 4: Start the Services
+
+Now let's bring up all the services:
+
+```bash
+# Start all containers in detached mode
+docker compose up -d
+
+# Check the logs to ensure everything started correctly
+docker compose logs -f webserver
+```
+
+You should see output similar to:
+
+```
+webserver_1  | [2024-01-15 10:30:00] Starting Paperless-ngx...
+webserver_1  | [2024-01-15 10:30:05] Applying database migrations...
+webserver_1  | [2024-01-15 10:30:10] Starting web server on port 8000
+```
+
+## Step 5: Create an Admin User
+
+Create your admin account to access the web interface:
+
+```bash
+docker compose exec webserver python manage.py createsuperuser
+```
+
+Follow the prompts to set your username, email, and password.
+
+## Step 6: Access the Web Interface
+
+Open your browser and navigate to `http://your-server-ip:8000`. Log in with the credentials you just created.
+
+:::info
+For production use, I recommend setting up a reverse proxy with SSL. Stay tuned for my upcoming Traefik setup guide!
+:::
+
+## Adding AI Document Processing
+
+Now let's add AI capabilities for automatic document classification.
+
+### Option 1: Paperless AI
+
+Paperless AI uses local AI models for document classification:
+
+```yaml title="docker-compose.yml (addition)"
+  paperless-ai:
+    image: ghcr.io/paperless-ai/paperless-ai:latest
+    restart: unless-stopped
+    depends_on:
+      - webserver
+    environment:
+      PAPERLESS_URL: http://webserver:8000
+      PAPERLESS_TOKEN: your_api_token_here
+      AI_MODEL: llama2
+```
+
+### Option 2: Paperless GPT
+
+For cloud-based AI processing with OpenAI:
+
+```yaml title="docker-compose.yml (addition)"
+  paperless-gpt:
+    image: ghcr.io/paperless-gpt/paperless-gpt:latest
+    restart: unless-stopped
+    depends_on:
+      - webserver
+    environment:
+      PAPERLESS_URL: http://webserver:8000
+      PAPERLESS_TOKEN: your_api_token_here
+      # highlight-next-line
+      OPENAI_API_KEY: sk-your-openai-key-here
+```
+
+:::danger
+Never commit your API keys to version control! Use environment variables or Docker secrets for sensitive data.
+:::
+
+## Useful Commands
+
+Here are some helpful commands for managing your Paperless-ngx installation:
+
+```bash
+# View logs
+docker compose logs -f
+
+# Restart all services
+docker compose restart
+
+# Stop all services
+docker compose down
+
+# Update to latest version
+docker compose pull
+docker compose up -d
+
+# Backup the database
+docker compose exec db pg_dump -U paperless paperless > backup.sql
+```
+
+## Troubleshooting
+
+### Common Issues
+
+| Issue | Solution |
+|-------|----------|
+| Container won't start | Check logs with `docker compose logs` |
+| OCR not working | Ensure `PAPERLESS_OCR_LANGUAGE` is set correctly |
+| Slow performance | Increase container memory limits |
+| Documents not importing | Check permissions on the `consume` folder |
+
+### Checking Container Health
+
+```bash
+# Check container status
+docker compose ps
+
+# Check resource usage
+docker stats
+```
+
+## Conclusion
+
+You now have a fully functional Paperless-ngx installation with AI-powered document processing! Start scanning your documents and watch as they're automatically organized and searchable.
+
+**Next steps:**
+- Set up email integration for automatic document ingestion
+- Configure custom tags and correspondents
+- Set up automated backups
+
+If you found this tutorial helpful, don't forget to subscribe to the [Hake Hardware YouTube channel](https://youtube.com/@HakeHardware) for more homelab content!
+
+---
+
+*Last updated: 2024-01-15*
