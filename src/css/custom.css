@@ -1,0 +1,351 @@
+/**
+ * Hake's Homelab - Custom CSS Theme
+ * 
+ * 80s hacker aesthetic with green/amber accents for dark mode
+ * Clean, modern styling for light mode
+ * Prioritizes readability while maintaining retro theme
+ */
+
+/* ============================================
+   LIGHT MODE (Default :root)
+   Clean, modern palette for readability
+   ============================================ */
+:root {
+  /* Primary color - teal/green for consistency with dark mode */
+  --ifm-color-primary: #0d7377;
+  --ifm-color-primary-dark: #0b686b;
+  --ifm-color-primary-darker: #0b6265;
+  --ifm-color-primary-darkest: #095153;
+  --ifm-color-primary-light: #0f7e83;
+  --ifm-color-primary-lighter: #108489;
+  --ifm-color-primary-lightest: #1299a0;
+
+  /* Background and text */
+  --ifm-background-color: #ffffff;
+  --ifm-background-surface-color: #f8f9fa;
+  --ifm-font-color-base: #1a1a2e;
+  --ifm-font-color-secondary: #4a4a68;
+
+  /* Code styling */
+  --ifm-code-font-size: 95%;
+  --ifm-code-background: #f4f4f5;
+  --ifm-code-padding-vertical: 0.1rem;
+  --ifm-code-padding-horizontal: 0.3rem;
+  --ifm-code-border-radius: 0.25rem;
+  --docusaurus-highlighted-code-line-bg: rgba(13, 115, 119, 0.1);
+
+  /* Typography - Clean modern fonts for body */
+  --ifm-font-family-base: 'Inter', 'Source Sans Pro', system-ui, -apple-system, 
+    BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  
+  /* Monospace fonts for code blocks */
+  --ifm-font-family-monospace: 'JetBrains Mono', 'Fira Code', 'SF Mono', 
+    'Cascadia Code', Consolas, 'Liberation Mono', Menlo, Monaco, monospace;
+
+  /* Navbar */
+  --ifm-navbar-background-color: #ffffff;
+  --ifm-navbar-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+
+  /* Footer */
+  --ifm-footer-background-color: #1a1a2e;
+  --ifm-footer-color: #e0e0e0;
+
+  /* Links */
+  --ifm-link-color: var(--ifm-color-primary);
+  --ifm-link-hover-color: var(--ifm-color-primary-dark);
+
+  /* Borders and dividers */
+  --ifm-hr-border-color: #e0e0e0;
+  --ifm-toc-border-color: #e0e0e0;
+
+  /* Admonitions */
+  --ifm-color-info: #0d7377;
+  --ifm-color-success: #2e7d32;
+  --ifm-color-warning: #ed6c02;
+  --ifm-color-danger: #d32f2f;
+}
+
+/* ============================================
+   DARK MODE - 80s Hacker Aesthetic
+   Terminal-inspired with green/amber accents
+   ============================================ */
+[data-theme='dark'] {
+  /* Primary color - Hacker green */
+  --ifm-color-primary: #00ff00;
+  --ifm-color-primary-dark: #00e600;
+  --ifm-color-primary-darker: #00d900;
+  --ifm-color-primary-darkest: #00b300;
+  --ifm-color-primary-light: #1aff1a;
+  --ifm-color-primary-lighter: #26ff26;
+  --ifm-color-primary-lightest: #4dff4d;
+
+  /* Secondary accent - Amber */
+  --ifm-color-secondary: #ffb000;
+  --ifm-color-secondary-dark: #e69e00;
+  --ifm-color-secondary-light: #ffc033;
+
+  /* Background - Dark terminal style */
+  --ifm-background-color: #0a0a0f;
+  --ifm-background-surface-color: #12121a;
+  --ifm-font-color-base: #e0e0e0;
+  --ifm-font-color-secondary: #a0a0a0;
+
+  /* Code styling - Terminal feel */
+  --ifm-code-background: #1a1a24;
+  --docusaurus-highlighted-code-line-bg: rgba(0, 255, 0, 0.1);
+
+  /* Navbar - Dark with subtle glow potential */
+  --ifm-navbar-background-color: #0d0d14;
+  --ifm-navbar-shadow: 0 1px 2px 0 rgba(0, 255, 0, 0.1);
+
+  /* Footer */
+  --ifm-footer-background-color: #0a0a0f;
+  --ifm-footer-color: #a0a0a0;
+
+  /* Links - Green glow effect */
+  --ifm-link-color: #00ff00;
+  --ifm-link-hover-color: #4dff4d;
+
+  /* Borders - Subtle green tint */
+  --ifm-hr-border-color: #1a3a1a;
+  --ifm-toc-border-color: #1a3a1a;
+
+  /* Admonitions - Retro colors */
+  --ifm-color-info: #00bfff;
+  --ifm-color-success: #00ff00;
+  --ifm-color-warning: #ffb000;
+  --ifm-color-danger: #ff4444;
+
+  /* Menu/sidebar */
+  --ifm-menu-color: #c0c0c0;
+  --ifm-menu-color-active: #00ff00;
+  --ifm-menu-color-background-active: rgba(0, 255, 0, 0.1);
+  --ifm-menu-color-background-hover: rgba(0, 255, 0, 0.05);
+
+  /* Table of contents */
+  --ifm-toc-link-color: #a0a0a0;
+
+  /* Scrollbar styling for dark mode */
+  scrollbar-color: #00ff00 #1a1a24;
+}
+
+/* ============================================
+   CODE BLOCK STYLING
+   Monospace fonts with enhanced readability
+   ============================================ */
+
+/* Inline code */
+code {
+  font-family: var(--ifm-font-family-monospace);
+  font-variant-ligatures: common-ligatures;
+}
+
+/* Code blocks */
+pre {
+  font-family: var(--ifm-font-family-monospace);
+}
+
+/* Dark mode code block enhancements */
+[data-theme='dark'] pre {
+  border: 1px solid #1a3a1a;
+}
+
+[data-theme='dark'] .prism-code {
+  background-color: #0d0d14 !important;
+}
+
+/* Code block line numbers */
+.prism-code .token-line {
+  font-family: var(--ifm-font-family-monospace);
+}
+
+/* ============================================
+   NAVBAR ENHANCEMENTS
+   ============================================ */
+
+/* Dark mode navbar title with subtle glow */
+[data-theme='dark'] .navbar__title {
+  color: #00ff00;
+  text-shadow: 0 0 10px rgba(0, 255, 0, 0.3);
+}
+
+/* Dark mode navbar links */
+[data-theme='dark'] .navbar__link {
+  color: #c0c0c0;
+}
+
+[data-theme='dark'] .navbar__link:hover,
+[data-theme='dark'] .navbar__link--active {
+  color: #00ff00;
+}
+
+/* ============================================
+   SIDEBAR ENHANCEMENTS
+   ============================================ */
+
+/* Dark mode sidebar active item */
+[data-theme='dark'] .menu__link--active:not(.menu__link--sublist) {
+  background-color: rgba(0, 255, 0, 0.1);
+  border-left: 3px solid #00ff00;
+}
+
+/* ============================================
+   FOOTER ENHANCEMENTS
+   ============================================ */
+
+[data-theme='dark'] .footer {
+  border-top: 1px solid #1a3a1a;
+}
+
+[data-theme='dark'] .footer__link-item {
+  color: #a0a0a0;
+}
+
+[data-theme='dark'] .footer__link-item:hover {
+  color: #00ff00;
+}
+
+/* ============================================
+   BUTTON AND INTERACTIVE ELEMENTS
+   ============================================ */
+
+/* Dark mode buttons with amber accent */
+[data-theme='dark'] .button--primary {
+  background-color: #ffb000;
+  border-color: #ffb000;
+  color: #0a0a0f;
+}
+
+[data-theme='dark'] .button--primary:hover {
+  background-color: #ffc033;
+  border-color: #ffc033;
+}
+
+/* Secondary buttons with green */
+[data-theme='dark'] .button--secondary {
+  border-color: #00ff00;
+  color: #00ff00;
+}
+
+[data-theme='dark'] .button--secondary:hover {
+  background-color: rgba(0, 255, 0, 0.1);
+}
+
+/* ============================================
+   SEARCH BOX (when enabled)
+   ============================================ */
+
+[data-theme='dark'] .DocSearch-Button {
+  background-color: #1a1a24;
+  border: 1px solid #1a3a1a;
+}
+
+[data-theme='dark'] .DocSearch-Button:hover {
+  border-color: #00ff00;
+  box-shadow: 0 0 5px rgba(0, 255, 0, 0.3);
+}
+
+/* ============================================
+   SCROLLBAR STYLING (WebKit browsers)
+   ============================================ */
+
+[data-theme='dark'] ::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+[data-theme='dark'] ::-webkit-scrollbar-track {
+  background: #1a1a24;
+}
+
+[data-theme='dark'] ::-webkit-scrollbar-thumb {
+  background: #00ff00;
+  border-radius: 4px;
+}
+
+[data-theme='dark'] ::-webkit-scrollbar-thumb:hover {
+  background: #4dff4d;
+}
+
+/* ============================================
+   SELECTION STYLING
+   ============================================ */
+
+[data-theme='dark'] ::selection {
+  background-color: rgba(0, 255, 0, 0.3);
+  color: #ffffff;
+}
+
+:root ::selection {
+  background-color: rgba(13, 115, 119, 0.3);
+  color: #000000;
+}
+
+/* ============================================
+   HEADING ENHANCEMENTS
+   ============================================ */
+
+/* Dark mode headings with subtle amber accent */
+[data-theme='dark'] h1,
+[data-theme='dark'] h2 {
+  border-bottom-color: #ffb000;
+}
+
+/* Anchor links */
+[data-theme='dark'] .hash-link {
+  color: #ffb000;
+}
+
+[data-theme='dark'] .hash-link:hover {
+  color: #ffc033;
+}
+
+/* ============================================
+   TABLE STYLING
+   ============================================ */
+
+[data-theme='dark'] table {
+  border-color: #1a3a1a;
+}
+
+[data-theme='dark'] th {
+  background-color: #12121a;
+  border-color: #1a3a1a;
+}
+
+[data-theme='dark'] td {
+  border-color: #1a3a1a;
+}
+
+[data-theme='dark'] tr:nth-child(2n) {
+  background-color: rgba(0, 255, 0, 0.02);
+}
+
+/* ============================================
+   BLOCKQUOTE STYLING
+   ============================================ */
+
+[data-theme='dark'] blockquote {
+  border-left-color: #ffb000;
+  background-color: rgba(255, 176, 0, 0.05);
+}
+
+/* ============================================
+   PAGINATION
+   ============================================ */
+
+[data-theme='dark'] .pagination-nav__link {
+  border-color: #1a3a1a;
+}
+
+[data-theme='dark'] .pagination-nav__link:hover {
+  border-color: #00ff00;
+}
+
+[data-theme='dark'] .pagination-nav__sublabel {
+  color: #a0a0a0;
+}
+
+[data-theme='dark'] .pagination-nav__label {
+  color: #00ff00;
+}
