@@ -5,7 +5,7 @@ import type * as Preset from '@docusaurus/preset-classic';
 // This runs in Node.js - Don't use client-side code here (browser APIs, JSX...)
 
 const config: Config = {
-  title: "Hake's Homelab",
+  title: 'Localhake',
   tagline: 'Homelab tutorials and documentation',
   favicon: 'img/favicon.ico',
 
@@ -15,7 +15,7 @@ const config: Config = {
   },
 
   // Set the production url of your site here
-  url: 'https://hakes-homelab.vercel.app',
+  url: 'https://blog.localhake.com',
   // Set the /<baseUrl>/ pathname under which your site is served
   baseUrl: '/',
 
@@ -57,7 +57,7 @@ const config: Config = {
           showReadingTime: true,
           feedOptions: {
             type: 'all',
-            copyright: `Copyright © ${new Date().getFullYear()} Hake's Homelab`,
+            copyright: `Copyright © ${new Date().getFullYear()} Localhake`,
             xslt: true,
           },
           blogSidebarCount: 'ALL',
@@ -86,10 +86,15 @@ const config: Config = {
       respectPrefersColorScheme: true,
     },
     navbar: {
-      title: "Hake's Homelab",
+      title: 'Localhake',
       items: [
         { to: '/blog', label: 'Blog', position: 'left' },
         { to: '/wiki/overview', label: 'Wiki', position: 'left' },
+        {
+          href: 'https://localhake.com',
+          label: 'Main Site',
+          position: 'right',
+        },
         {
           href: 'https://youtube.com/@HakeHardware',
           label: 'YouTube',
@@ -131,8 +136,17 @@ const config: Config = {
             },
           ],
         },
+        {
+          title: 'Localhake',
+          items: [
+            {
+              label: 'Main Site',
+              href: 'https://localhake.com',
+            },
+          ],
+        },
       ],
-      copyright: `Copyright © ${new Date().getFullYear()} Hake's Homelab. Built with Docusaurus.`,
+      copyright: `© ${new Date().getFullYear()} Localhake. Built with Docusaurus.`,
     },
     prism: {
       theme: prismThemes.github,
