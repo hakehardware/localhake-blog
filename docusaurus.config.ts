@@ -86,13 +86,13 @@ const config: Config = {
       respectPrefersColorScheme: true,
     },
     navbar: {
-      title: 'Localhake',
+      title: 'Localhake [Blog]',
       items: [
         { to: '/blog', label: 'Blog', position: 'left' },
-        { to: '/wiki/overview', label: 'Wiki', position: 'left' },
+        { to: '/wiki/overview', label: 'Hake Homelab', position: 'left' },
         {
           href: 'https://localhake.com',
-          label: 'Main Site',
+          label: 'Home',
           position: 'right',
         },
         {
@@ -118,7 +118,7 @@ const config: Config = {
               to: '/blog',
             },
             {
-              label: 'Wiki',
+              label: 'Hake Homelab',
               to: '/wiki/overview',
             },
           ],
@@ -140,7 +140,7 @@ const config: Config = {
           title: 'Localhake',
           items: [
             {
-              label: 'Main Site',
+              label: 'Home',
               href: 'https://localhake.com',
             },
           ],

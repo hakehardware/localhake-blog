@@ -18,7 +18,7 @@ describe('Homepage', () => {
    */
   it('renders Localhake title', () => {
     render(<Home />);
-    expect(screen.getByRole('heading', { name: /localhake/i })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1, name: /localhake/i })).toBeInTheDocument();
   });
 
   /**
@@ -63,9 +63,9 @@ describe('Homepage', () => {
    * Validates: Requirement 6.2
    * THE Homepage SHALL include a reference or link to the main Localhake site in an appropriate location
    */
-  it('renders main site link with correct href', () => {
+  it('renders home link with correct href', () => {
     render(<Home />);
-    const mainSiteLink = screen.getByRole('link', { name: /main site/i });
-    expect(mainSiteLink).toHaveAttribute('href', 'https://localhake.com');
+    const homeLink = screen.getByRole('link', { name: /⌂Home/i });
+    expect(homeLink).toHaveAttribute('href', 'https://localhake.com');
   });
 });

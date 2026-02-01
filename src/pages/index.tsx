@@ -63,14 +63,14 @@ interface SocialLinkItem {
 
 const socialLinks: SocialLinkItem[] = [
   {
+    href: 'https://localhake.com',
+    label: 'Home',
+    icon: '⌂',
+  },
+  {
     href: 'https://www.youtube.com/@hakehardware',
     label: 'YouTube',
     icon: '▶',
-  },
-  {
-    href: 'https://localhake.com',
-    label: 'Main Site',
-    icon: '⌂',
   },
   {
     href: '#',
@@ -127,14 +127,14 @@ export default function Home(): ReactNode {
           <div className={styles.contentGrid}>
             <Link to="/blog" className={styles.contentCard}>
               <span className={styles.contentIcon}>📝</span>
-              <h3 className={styles.contentTitle}>Blog</h3>
+              <h3 className={styles.contentTitle}>Localhake [Blog]</h3>
               <p className={styles.contentDescription}>
                 Video companion posts with step-by-step tutorials and guides.
               </p>
             </Link>
             <Link to="/wiki/overview" className={styles.contentCard}>
               <span className={styles.contentIcon}>📚</span>
-              <h3 className={styles.contentTitle}>Wiki</h3>
+              <h3 className={styles.contentTitle}>Hake Homelab</h3>
               <p className={styles.contentDescription}>
                 Documentation of my homelab infrastructure, hosts, and services.
               </p>
