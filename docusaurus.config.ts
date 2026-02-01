@@ -21,7 +21,7 @@ const config: Config = {
 
   // GitHub pages deployment config.
   organizationName: 'hakehardware',
-  projectName: 'hakes-homelab',
+  projectName: 'localhake-blog',
 
   onBrokenLinks: 'throw',
   onBrokenMarkdownLinks: 'warn',
@@ -51,7 +51,7 @@ const config: Config = {
           // Please change this to your repo.
           // Remove this to remove the "edit this page" links.
           editUrl:
-            'https://github.com/hakehardware/hakes-homelab/tree/main/',
+            'https://github.com/hakehardware/localhake-blog/tree/main/',
         },
         blog: {
           showReadingTime: true,
@@ -64,7 +64,7 @@ const config: Config = {
           // Please change this to your repo.
           // Remove this to remove the "edit this page" links.
           editUrl:
-            'https://github.com/hakehardware/hakes-homelab/tree/main/',
+            'https://github.com/hakehardware/localhake-blog/tree/main/',
           // Useful options to enforce blogging best practices
           onInlineTags: 'warn',
           onInlineAuthors: 'warn',
@@ -101,7 +101,7 @@ const config: Config = {
           position: 'right',
         },
         {
-          href: 'https://github.com/hakehardware/hakes-homelab',
+          href: 'https://github.com/hakehardware/localhake-blog',
           label: 'GitHub',
           position: 'right',
         },
@@ -132,7 +132,7 @@ const config: Config = {
             },
             {
               label: 'GitHub',
-              href: 'https://github.com/hakehardware/hakes-homelab',
+              href: 'https://github.com/hakehardware/localhake-blog',
             },
           ],
         },
