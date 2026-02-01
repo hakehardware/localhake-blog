@@ -70,18 +70,19 @@
   align-items: center;
   gap: 0.5rem;
   padding: 0.4rem 0.8rem;
-  background: var(--ifm-color-primary-darkest, #004400);
-  border: 1px solid var(--ifm-color-primary, #00ff00);
+  background: transparent;
+  border: 1px solid #ffffff;
   border-radius: 4px;
-  color: var(--ifm-color-primary-lightest, #66ff66);
+  color: #ffffff;
   text-decoration: none;
   font-weight: 500;
   transition: all 0.2s ease;
 }
 
 .videoLink:hover {
-  background: var(--ifm-color-primary-dark, #00cc00);
-  color: var(--ifm-background-color, #000000);
+  background: rgba(255, 255, 255, 0.1);
+  border-color: var(--ifm-color-primary, #00ff00);
+  color: var(--ifm-color-primary, #00ff00);
   text-decoration: none;
 }
 

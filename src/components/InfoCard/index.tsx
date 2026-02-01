@@ -144,7 +144,7 @@ export default function InfoCard({
           rel="noopener noreferrer"
         >
           <span className={styles.videoIcon}>▶️</span>
-          <span>Watch Video</span>
+          <span>Watch on YouTube</span>
         </a>
       )}
     </div>
