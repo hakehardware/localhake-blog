@@ -1,19 +1,49 @@
-facebook:
-  label: Facebook
-  permalink: /facebook
-  description: Facebook tag description
+state-of-the-homelab:
+  label: State of the Homelab
+  permalink: /state-of-the-homelab
+  description: Periodic updates on the homelab — what changed, what's working, and what's next
 
-hello:
-  label: Hello
-  permalink: /hello
-  description: Hello tag description
+homelab:
+  label: Homelab
+  permalink: /homelab
+  description: General homelab content
 
-docusaurus:
-  label: Docusaurus
-  permalink: /docusaurus
-  description: Docusaurus tag description
+self-hosted:
+  label: Self-Hosted
+  permalink: /self-hosted
+  description: Self-hosted services and applications
 
-hola:
-  label: Hola
-  permalink: /hola
-  description: Hola tag description
+proxmox:
+  label: Proxmox
+  permalink: /proxmox
+  description: Proxmox VE virtualization platform
+
+networking:
+  label: Networking
+  permalink: /networking
+  description: Network configuration, VLANs, DNS, and firewalls
+
+media:
+  label: Media
+  permalink: /media
+  description: Media streaming and management
+
+ai:
+  label: AI
+  permalink: /ai
+  description: Local AI, LLMs, and machine learning
+
+docker:
+  label: Docker
+  permalink: /docker
+  description: Docker and containerization
+
+tutorial:
+  label: Tutorial
+  permalink: /tutorial
+  description: Step-by-step guides and walkthroughs
+
+hardware:
+  label: Hardware
+  permalink: /hardware
+  description: Hardware reviews, builds, and specs

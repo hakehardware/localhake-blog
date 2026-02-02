@@ -1,44 +1,54 @@
 ---
 title: Hosts
 sidebar_label: Hosts
-sidebar_position: 2
-description: Documentation of physical and virtual hosts in the homelab
+sidebar_position: 3
+description: Physical servers and what runs on each — Proxmox hosts, AI box, and backup server
 ---
 
 # Hosts
 
-This section documents the physical and virtual hosts that make up the homelab infrastructure.
+The homelab runs on five physical hosts: three standalone Proxmox VE nodes, a dedicated AI machine, and a backup server. Everything lives in a TecMojo 42U rack.
 
-## Physical Hosts
+## Host Overview
 
-Documentation for physical servers and machines will be added here.
+| Host | IP | Hardware | CPU | RAM | Role |
+|------|----|----------|-----|-----|------|
+| [ceres](./ceres.md) | 10.1.10.10 | Mini PC | Intel 12450H | 64GB | Core services |
+| [eros](./eros.md) | 10.1.10.11 | Mini PC | Intel 12450H | 64GB | Home automation + productivity |
+| [tycho](./tycho.md) | 10.1.10.12 | UGREEN 6-Bay NAS | Intel 1245U | 64GB | NAS + media |
+| [roci](./roci.md) | 10.1.10.13 | GMKtec EVO-X2 | AMD Ryzen AI Max+ 395 | 128GB | Local AI |
+| [pbs](./pbs.md) | 10.1.10.16 | Mini PC | TBD | TBD | Backups |
 
-### Servers
+## Proxmox Hosts
 
-*Coming soon: Details about physical server hardware*
+Ceres, eros, and tycho are three standalone Proxmox VE hosts on VLAN 10. They are **not** a Proxmox cluster — each host is managed independently with its own duties and storage. There's no shared management, live migration, or failover between them. For a homelab, the added complexity of clustering isn't worth it when each node has a clear, separate role.
 
-### Workstations
+Roci runs Ubuntu Server (not Proxmox) since it's dedicated to AI workloads with ROCm.
 
-*Coming soon: Details about workstation configurations*
+## VM/LXC Strategy
 
-## Virtual Hosts
+| Type | VMID Range | Use Case |
+|------|:----------:|----------|
+| LXC | 100–199 | Lightweight Linux services, Docker hosts, most workloads |
+| VM | 200–255 | Full OS needed (HAOS), hardware passthrough, untrusted workloads |
 
-Documentation for virtual machines and containers will be added here.
+**VMID = IP last octet** — always. See [IP Strategy](../overview/ip-strategy.md) for the full map.
 
-### Proxmox VMs
+### When to Use What
 
-*Coming soon: Virtual machine configurations and purposes*
+| Type | When to Use |
+|------|------------|
+| **LXC** | Simple services, single binary, native packages — the default choice |
+| **LXC + Docker** | Complex apps with multiple components, official Docker images. Enable nesting + keyctl in Proxmox. |
+| **VM** | Needs full OS (Home Assistant OS), hardware passthrough, or untrusted workloads |
 
-### Docker Hosts
+## Resource Allocation
 
-*Coming soon: Docker host configurations*
+| Host | Allocated vCPU | Allocated RAM | Available RAM |
+|------|:--------------:|:-------------:|:-------------:|
+| ceres | 7 | ~6.5GB | ~57.5GB |
+| eros | 12 | ~21.5GB | ~42.5GB |
+| tycho | 14 | ~15.5GB | ~48.5GB |
+| roci | — | ~68–100GB | ~28–60GB |
 
-## Network Diagram
-
-*Coming soon: Visual representation of host connectivity*
-
----
-
-:::note
-This section is under construction. Check back soon for detailed host documentation!
-:::
+All hosts have significant headroom for growth.

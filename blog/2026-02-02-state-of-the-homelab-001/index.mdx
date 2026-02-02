@@ -1,0 +1,108 @@
+---
+title: "State of the Homelab #001 — The Foundation"
+slug: state-of-the-homelab-001
+authors: [hake]
+tags: [state-of-the-homelab, homelab, self-hosted, proxmox, networking, hardware, ai]
+date: 2026-02-02
+---
+
+Welcome to the first ever State of the Homelab. This is a new recurring series where I'll talk about what's going on with my homelab — what changed, why I made certain decisions, what's working, and what's making me want to pull my hair out. Think of it less as a tutorial and more as me rambling about my setup over a cup of coffee.
+
+Since this is the first one, there's no "what changed since last time." Instead, this is the baseline — the full picture of where things stand today.
+
+{/* truncate */}
+
+## The Big Picture
+
+The homelab runs on a collection of mini PCs and a UGREEN NAS, all housed in a TecMojo 42U rack with a nice front door to keep things quiet. No enterprise rack servers, no deafening fan noise at 2am. Here's the lineup:
+
+| Host | Hardware | Role |
+|------|----------|------|
+| **ceres** | Mini PC, Intel 12450H, 64GB | Core infrastructure — DNS, reverse proxy, monitoring |
+| **eros** | Mini PC, Intel 12450H, 64GB | Home automation, workflow automation, productivity apps |
+| **tycho** | UGREEN 6-Bay NAS, Intel 1245U, 64GB | The storage beast — media streaming, photos, documents |
+| **roci** | GMKtec EVO-X2, AMD Ryzen AI Max+ 395, 128GB | Local AI inference |
+| **pbs** | Mini PC | Proxmox Backup Server |
+
+Yes, they're named after *The Expanse*. No, I will not be taking questions on this.
+
+Ceres, eros, and tycho each run Proxmox VE independently — they're *not* a Proxmox cluster. No shared management, no live migration, no failover. Each host has its own job and its own storage. Honestly, for a homelab where I'm the only user, clustering adds complexity I don't need. Roci runs Ubuntu Server because it's dedicated to AI workloads with ROCm. Everything lives on VLAN 10, DNS is isolated on VLAN 99, IoT devices are quarantined on VLAN 30, and absolutely nothing is exposed to the internet.
+
+## The Decisions That Got Me Here
+
+### Mini PCs Over Rack Servers
+
+I see a lot of homelabs built on decommissioned enterprise gear — Dell PowerEdges, HP ProLiants, that kind of thing. They're powerful and cheap on eBay, but they're also loud, power-hungry, and generate enough heat to warm a small apartment.
+
+Mini PCs hit a sweet spot for me. Low power draw (~15–45W each), near-silent operation, and modern CPUs with plenty of cores. The 12th gen Intel chips in ceres and eros give me 10 cores each, and I've got 64GB of RAM in every node. That's more than enough headroom — ceres only uses about 6.5GB across all its containers.
+
+### FileBot + Syncthing Over the *arr Stack
+
+This one comes up a lot. The *arr stack (Sonarr, Radarr, Prowlarr, etc.) is the go-to recommendation for automated media management, and I get why — it's a polished, fully automated pipeline from search to download to organized library.
+
+I tried it. I didn't love it.
+
+My issue was control. When there are five or six different releases of something — different encoders, resolutions, audio tracks, file sizes — the *arr stack picks for you based on quality profiles. That's the whole point, and for a lot of people it's exactly what they want. For me, I want to look at the options and pick the specific release I'm after.
+
+So I went with a simpler approach: I manually find and add torrents to qBittorrent on a remote seedbox, tagging each one with a category (movies, tv, music, etc.) so it lands in the right download folder. Syncthing delivers the files to my NAS, and FileBot's AMC script auto-sorts everything into properly named media libraries every 30 minutes. An hourly rsync handles audiobooks and ebooks. It's not as hands-off as the *arr stack, but the manual step is the part I actually *want* to do.
+
+### Dedicated DNS VLAN
+
+Pi-hole + Unbound lives on its own VLAN (99). This seemed like overkill at first, but it makes the DNS interception policy on the UDM Pro much cleaner.
+
+Here's the problem it solves: a lot of IoT devices — smart TVs, streaming sticks, even some game consoles — have hardcoded DNS servers baked in. They completely ignore whatever DNS server your DHCP hands out and phone home to Google's `8.8.8.8` or whatever they want. Which means Pi-hole's ad-blocking? Totally bypassed.
+
+The fix is a NAT policy on the UDM Pro that intercepts any outbound DNS traffic (port 53) and silently redirects it to Pi-hole. The device thinks it's talking to Google, but it's actually getting its response from Pi-hole. Having Pi-hole on a dedicated VLAN makes this policy clean — just redirect port 53 from every other VLAN to a single known IP on VLAN 99.
+
+### Local AI on Unified Memory
+
+Roci is the newest and most interesting machine in the homelab. The GMKtec EVO-X2 has an AMD Ryzen AI Max+ 395 with 128GB of unified memory shared between the CPU and GPU. The Radeon 8060S iGPU only reports 1GB of VRAM, which sounds useless for AI — but it has access to ~115GB of GTT (Graphics Translation Table) memory from the shared pool.
+
+That means I can run Llama 3.3 70B locally. A 70-billion parameter model. On a mini PC that sits on my desk.
+
+It's not winning any speed benchmarks against a rack of A100s, but it's fast enough for my use cases: Paperless-AI uses it for RAG document chat (ask questions about your scanned documents), and n8n workflow automations call it for various tasks. Paperless-GPT uses Claude's API instead of Ollama because the tagging and OCR quality is noticeably better with a frontier model — I tried local models first and the results weren't even close. It's the one exception to the "keep everything local" philosophy, and I'm okay with it because it's low-volume (a few documents a week) and the documents are already OCR'd text, not raw sensitive data. If that tradeoff doesn't work for you, Paperless-GPT does support Ollama as a backend — just expect to spend more time on prompts. For everything else where data privacy matters, having a capable local LLM is huge.
+
+## What's Running
+
+22 services across 5 hosts. Here's the highlight reel:
+
+**Infrastructure** — Pi-hole + Unbound for DNS, Caddy for reverse proxy with `*.hake.rodeo` internal domains, Vaultwarden for passwords, Uptime Kuma for monitoring, Homepage and Homer for dashboards.
+
+**Media** — Jellyfin for movies and TV (with Intel QuickSync hardware transcoding), Navidrome for music, Audiobookshelf for audiobooks, Kavita for ebooks. All fed by the seedbox → Syncthing → FileBot pipeline.
+
+**Productivity** — Paperless-ngx for document management (scanner → OCR → AI tagging), Immich for photos (Google Photos replacement), Mealie for recipes, Actual Budget for finances, Samba for family file shares.
+
+**Automation** — Home Assistant for the smart home, n8n for workflow automation.
+
+**AI** — Ollama running Llama 3.3 70B, Paperless-GPT for Claude-powered document tagging, Paperless-AI for document RAG chat.
+
+## What's Working
+
+**The VMID = IP convention.** Every container's ID matches its IP last octet. VMID 104? That's `10.1.10.104` — Jellyfin. I never have to look anything up. It sounds simple, but it eliminates an entire category of "wait, what IP is that again?" moments.
+
+**Caddy with DNS challenge.** Wildcard HTTPS certs via Cloudflare DNS challenge means I get proper HTTPS on every internal service without exposing a single port to the internet. It just works.
+
+**PBS backups.** Nightly snapshot backups to Proxmox Backup Server with staggered schedules, ZSTD compression, and deduplication. The vzdump hook scripts on eros and tycho stop database services for ~20 seconds during the snapshot freeze to prevent corruption. It's not glamorous, but it's the kind of thing you're very glad to have when something inevitably breaks.
+
+**The Paperless-ngx → Paperless-GPT pipeline.** Scan a document on the Brother scanner, it lands in a Samba share, Paperless-ngx auto-imports it with OCR, a workflow tags it for Paperless-GPT, and Claude assigns a title, tags, correspondent, and document type. By the time I walk back to my desk, the document is fully processed and searchable. This is the single most "the future is here" part of my homelab.
+
+## What's Not
+
+**Offsite backup is incomplete.** Personal files sync to my Mac via Syncthing and go to Backblaze, but I don't have full PBS replication to an offsite location. If my house burns down, I'm losing all my VM/container snapshots. It's on the list.
+
+**Syncthing daily rescan is slow.** The seedbox provider's fair usage policy means I can't enable Watch for Changes or set fast rescan intervals. So after adding a torrent, I either wait 24 hours or manually hit Rescan in the Syncthing UI. It's a minor annoyance, but it's the kind of thing that bugs you every time.
+
+**The DoH/DoT gap.** My DNS interception catches everything on port 53, but DNS-over-HTTPS and DNS-over-TLS sail right through. Some devices are starting to use these by default. I should probably block known public DoH/DoT endpoints, but I haven't gotten around to it yet.
+
+## What's Next
+
+- **Test restore procedures.** I've got backups but I've never actually tested a full restore. That's the kind of thing that makes backup engineers twitch.
+- **Offsite PBS replication.** Either to a cloud target or a friend's house. This is the biggest gap in the setup right now.
+- **More n8n automations.** I've barely scratched the surface of what n8n + Ollama can do together. Home Assistant integrations, notification workflows, maybe some automated reporting.
+- **This blog and wiki.** You're reading the result of documenting everything. The [wiki](/wiki/overview) has the full technical reference. I plan to keep both updated as things change.
+
+---
+
+That's the state of things. If you've got questions about any of this setup, the [wiki](/wiki/overview) has detailed documentation on every host, service, and network configuration. And if you want to see this stuff in action, check out the [YouTube channel](https://youtube.com/@HakeHardware).
+
+Until next time.

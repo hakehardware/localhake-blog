@@ -2,41 +2,54 @@
 title: Overview
 sidebar_label: Overview
 sidebar_position: 1
-description: General overview of Hake's Homelab infrastructure
+description: General overview of Hake's Homelab — goals, design philosophy, and how everything fits together
 ---
 
 # Homelab Overview
 
-Welcome to Hake Homelab! This documentation provides a comprehensive look at the homelab infrastructure powering the Hake Hardware YouTube channel.
+Welcome to the documentation for Hake's Homelab. This wiki is a living reference for the entire self-hosted infrastructure powering the LocalHake YouTube channel and my personal services.
 
-## What is a Homelab?
+## Goals
 
-A homelab is a personal computing environment used for learning, experimentation, and self-hosting services. It can range from a single Raspberry Pi to a full rack of enterprise servers.
+- **Self-host everything locally** — no cloud dependencies for personal data
+- **Media server** — movies, TV, music, audiobooks, and ebooks all streaming locally
+- **Home automation** — smart home management with Home Assistant
+- **Local AI** — run large language models on-premises for document processing and automation
+- **VPN-only remote access** — nothing exposed to the internet
+- **Document everything** — this wiki is the result
 
-## About This Homelab
+## Design Principles
 
-This homelab serves multiple purposes:
+1. **VMID = IP** — every container and VM's ID matches its IP last octet, so you always know the address
+2. **Seedbox for acquisition, local for playback** — downloads happen remotely, organization and streaming happen at home
+3. **Nothing exposed to the internet** — WireGuard VPN is the only way in from outside
+4. **Single source of truth** — each piece of configuration lives in one place
+5. **Keep it simple** — LXC containers for most workloads, VMs only when required
 
-- **Learning Platform**: Testing new technologies and configurations
-- **Content Creation**: Infrastructure for the Hake Hardware YouTube channel
-- **Self-Hosted Services**: Running personal applications and services
-- **Home Automation**: Managing smart home devices and automation
+## Naming Convention
+
+Hosts are named after locations from *The Expanse*:
+
+| Host | Namesake | Role |
+|------|----------|------|
+| **ceres** | Ceres Station | Core infrastructure services |
+| **eros** | Eros Station | Home automation and productivity |
+| **tycho** | Tycho Station | NAS and media services |
+| **roci** | Rocinante | Local AI workloads |
+| **pbs** (laconia) | Laconia | Backup server |
+
+LXC containers and VMs are named after their service directly (e.g., `jellyfin`, `pihole`, `haos`).
 
 ## Documentation Sections
 
-This documentation is organized into the following sections:
-
 | Section | Description |
 |---------|-------------|
-| [Overview](/wiki/overview) | General information about the homelab (you are here) |
-| [Hosts](/wiki/hosts) | Documentation of physical and virtual hosts |
-| [Equipment](/wiki/equipment) | Hardware and networking equipment details |
-| [Services](/wiki/services) | Self-hosted services and applications |
-
-## Getting Started
-
-If you're new to homelabbing, check out the [Blog](/blog) for step-by-step tutorials and guides. This documentation serves as reference for the specific setup used in this homelab.
+| [Overview](/wiki/overview) | Goals, architecture, and IP strategy (you are here) |
+| [Network](/wiki/network) | VLANs, DNS, reverse proxy, firewall, and remote access |
+| [Hosts](/wiki/hosts) | Physical servers and what runs on each |
+| [Equipment](/wiki/equipment) | Hardware specs, networking gear, and storage |
+| [Services](/wiki/services) | Every self-hosted service documented individually |
 
 :::tip
-Looking for a specific tutorial? Use the search function or browse the blog for detailed walkthroughs.
+Looking for step-by-step tutorials? Check the [Blog](/blog) for detailed walkthroughs. This wiki is the reference for what's running and how it's configured.
 :::

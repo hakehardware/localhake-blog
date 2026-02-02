@@ -1,54 +1,29 @@
 ---
 title: Equipment
 sidebar_label: Equipment
-sidebar_position: 3
-description: Hardware and networking equipment in the homelab
+sidebar_position: 4
+description: Hardware inventory — compute, networking, and storage equipment
 ---
 
 # Equipment
 
-This section documents the hardware and networking equipment used in the homelab.
+All the physical hardware in the homelab — mini PCs, NAS, networking gear, and storage.
 
-## Networking
+## At a Glance
 
-### Router/Firewall
+| Category | Key Items |
+|----------|-----------|
+| [Compute](./compute.md) | 4 mini PCs + 1 UGREEN NAS + backup server |
+| [Networking](./networking.md) | UDM Pro, USW Pro XG 8 PoE, UniFi Mesh AP |
+| [Storage](./storage.md) | ~65TB HDD (RAIDZ2), ~3.6TB SSD (mirror), 8TB seedbox |
 
-*Coming soon: Router and firewall configuration details*
+## Design Philosophy
 
-### Switches
+The homelab runs entirely on mini PCs and a consumer NAS housed in a TecMojo 42U rack. No enterprise rack servers — just low-power, quiet hardware that keeps power consumption and noise minimal.
 
-*Coming soon: Network switch specifications and VLAN configurations*
-
-### Access Points
-
-*Coming soon: Wireless access point details*
-
-## Storage
-
-### NAS
-
-*Coming soon: Network attached storage configuration*
-
-### Drives
-
-*Coming soon: Storage drive inventory and specifications*
-
-## Power
-
-### UPS
-
-*Coming soon: Uninterruptible power supply details*
-
-### PDU
-
-*Coming soon: Power distribution unit configuration*
-
-## Rack Setup
-
-*Coming soon: Rack layout and cable management*
-
----
-
-:::note
-This section is under construction. Check back soon for detailed equipment documentation!
-:::
+| Goal | Approach |
+|------|----------|
+| Low power | Mini PCs (~15–45W each) instead of rack servers |
+| Low noise | Fanless or quiet fan designs |
+| 10G backbone | USW Pro XG 8 PoE for high-throughput between hosts |
+| Future expansion | Significant RAM and CPU headroom on all hosts |
