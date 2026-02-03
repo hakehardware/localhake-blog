@@ -111,7 +111,7 @@ export default function Home(): ReactNode {
   const {siteConfig} = useDocusaurusContext();
   return (
     <Layout
-      title="Homelab Tutorials & Documentation"
+      title="Blog"
       description="Companion site for Hake Hardware YouTube channel. Written tutorials, homelab documentation, and self-hosted guides for enthusiasts.">
       <HomepageHeader />
       <main className={styles.main}>
