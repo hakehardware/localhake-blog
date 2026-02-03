@@ -111,8 +111,8 @@ export default function Home(): ReactNode {
   const {siteConfig} = useDocusaurusContext();
   return (
     <Layout
-      title={`Hello from ${siteConfig.title}`}
-      description="Description will go into a meta tag in <head />">
+      title="Homelab Tutorials & Documentation"
+      description="Companion site for Hake Hardware YouTube channel. Written tutorials, homelab documentation, and self-hosted guides for enthusiasts.">
       <HomepageHeader />
       <main className={styles.main}>
         <Section tag="ABOUT">
