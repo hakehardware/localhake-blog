@@ -19,8 +19,12 @@ export default defineConfig({
     alias: {
       '@docusaurus/Link': path.resolve(__dirname, 'src/__mocks__/@docusaurus/Link.tsx'),
       '@docusaurus/useDocusaurusContext': path.resolve(__dirname, 'src/__mocks__/@docusaurus/useDocusaurusContext.ts'),
+      '@docusaurus/Head': path.resolve(__dirname, 'src/__mocks__/@docusaurus/Head.tsx'),
       '@theme/Layout': path.resolve(__dirname, 'src/__mocks__/@theme/Layout.tsx'),
       '@theme/Heading': path.resolve(__dirname, 'src/__mocks__/@theme/Heading.tsx'),
+      '@theme-original/BlogPostPage': path.resolve(__dirname, 'src/__mocks__/@theme-original/BlogPostPage.tsx'),
+      '@theme-original/DocItem': path.resolve(__dirname, 'src/__mocks__/@theme-original/DocItem.tsx'),
+      '@site/src/components/BlogPostStructuredData': path.resolve(__dirname, 'src/__mocks__/@site/src/components/BlogPostStructuredData/index.tsx'),
     },
   },
 });

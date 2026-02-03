@@ -1,0 +1,303 @@
+---
+title: "How to Create Your First Virtual Machine in Proxmox VE"
+slug: proxmox-create-virtual-machine
+authors: [hake]
+tags: [tutorial, proxmox, homelab]
+date: 2026-02-02
+difficulty: 2
+time: 20
+draft: true
+---
+
+<InfoCard difficulty={2} time={20} />
+
+Sometimes a container isn't enough — you need a full virtual machine. Maybe you're installing Windows, running Home Assistant OS, passing through a GPU, or working with an OS that needs its own kernel. In this guide, we'll create a Linux VM from an ISO, walk through every tab of the creation wizard, install the OS, and set up the QEMU Guest Agent so Proxmox can communicate properly with your VM.
+
+{/* truncate */}
+
+## Prerequisites
+
+- A working Proxmox VE 9.x installation with the [post-install steps](/blog/proxmox-post-install-guide) completed
+- An ISO uploaded to Proxmox (covered in the [post-install guide](/blog/proxmox-post-install-guide#step-6-upload-an-iso) — we'll use Ubuntu Server 24.04 in this guide)
+- Access to the web interface (`https://your-ip:8006`)
+
+## When to Use a VM Over a Container
+
+As covered in the [LXC container guide](/blog/proxmox-create-lxc-container), containers are the default choice for most homelab workloads. Use a VM when you need:
+
+- **A different OS** — Windows, FreeBSD, or any non-Linux OS
+- **A full OS image** — Home Assistant OS, TrueNAS, OPNsense
+- **Hardware passthrough** — GPU, USB controller, or NIC passthrough
+- **Its own kernel** — some software requires specific kernel modules or versions
+- **Maximum isolation** — untrusted workloads or security-sensitive environments
+
+## Step 1: Create the VM
+
+Click **Create VM** in the top-right corner of the web interface.
+
+### General Tab
+
+| Field | What to Enter |
+|-------|--------------|
+| **Node** | Your Proxmox node |
+| **VM ID** | A unique numeric ID, e.g., `200` |
+| **Name** | A descriptive name, e.g., `ubuntu-server` |
+
+:::tip
+A useful convention is to use VM IDs 100–199 for containers and 200–255 for VMs. This makes it easy to tell them apart at a glance.
+:::
+
+### OS Tab
+
+| Field | What to Enter |
+|-------|--------------|
+| **Use CD/DVD disc image file (ISO)** | Selected |
+| **Storage** | `local` |
+| **ISO image** | Select the Ubuntu Server ISO you uploaded |
+| **Type** | `Linux` |
+| **Version** | `6.x - 2.6 Kernel` |
+
+Selecting the correct OS type lets Proxmox apply sensible defaults — for example, Linux VMs expect UTC time while Windows VMs expect local time.
+
+### System Tab
+
+| Field | What to Enter |
+|-------|--------------|
+| **Machine** | `q35` (modern chipset, better PCIe support) |
+| **BIOS** | `Default (SeaBIOS)` |
+| **SCSI Controller** | `VirtIO SCSI single` |
+| **Qemu Agent** | **Check this box** |
+
+:::info BIOS: SeaBIOS vs OVMF
+**SeaBIOS** is the traditional BIOS — works for most Linux VMs, simpler setup. Use this unless you have a reason not to.
+
+**OVMF** is UEFI firmware — required for Windows 11, Secure Boot, and some PCI passthrough scenarios. If you select OVMF, you'll also need to add an EFI disk.
+
+For a basic Linux VM, SeaBIOS is the right choice.
+:::
+
+:::info Why Enable the QEMU Agent?
+The QEMU Guest Agent is a small service that runs inside the VM and communicates with Proxmox. It enables:
+- **Clean shutdowns** — Proxmox can ask the VM to shut down gracefully instead of pulling the plug
+- **Better snapshots** — the agent can freeze the filesystem for consistent snapshots
+- **IP reporting** — Proxmox can display the VM's actual IP address in the web interface
+
+We'll install the agent inside the VM after the OS is set up.
+:::
+
+### Disks Tab
+
+| Field | What to Enter |
+|-------|--------------|
+| **Bus/Device** | `SCSI` (with VirtIO SCSI controller from the System tab) |
+| **Storage** | `local-lvm` (or `local-zfs`) |
+| **Disk size** | `32` GB (adjust based on your needs) |
+| **Discard** | Check this if you're on SSD/NVMe storage |
+| **IO Thread** | Check this for better disk performance |
+
+:::tip
+**Discard** tells the storage backend when blocks are freed, which is important for thin-provisioned storage and SSD health. **IO Thread** dedicates a separate thread to this disk's I/O operations, reducing latency. Both are safe to enable.
+:::
+
+### CPU Tab
+
+| Field | What to Enter |
+|-------|--------------|
+| **Sockets** | `1` |
+| **Cores** | `2` (increase for heavier workloads) |
+| **Type** | `host` |
+
+:::info CPU Type: Host vs x86-64-v2-AES
+**host** passes through your exact CPU model to the VM, giving the best performance. Use this when all your VMs run on the same physical host (no live migration).
+
+**x86-64-v2-AES** (or other virtual types) emulate a generic CPU. Use these if you plan to migrate VMs between hosts with different CPUs. For a single-node homelab, `host` is the right choice.
+:::
+
+### Memory Tab
+
+| Field | What to Enter |
+|-------|--------------|
+| **Memory (MiB)** | `2048` (2GB — increase based on workload) |
+
+For a basic Ubuntu Server, 2GB is plenty. Web servers, databases, or heavier applications may need 4–8GB.
+
+:::tip
+You can enable **Ballooning** (it's on by default) to let Proxmox dynamically reclaim unused memory from the VM. This means you can allocate 4GB but the VM will only hold onto what it's actually using, freeing the rest for other VMs.
+:::
+
+### Network Tab
+
+| Field | What to Enter |
+|-------|--------------|
+| **Bridge** | `vmbr0` |
+| **Model** | `VirtIO (paravirtualized)` |
+
+VirtIO is the performance choice — it delivers up to three times the throughput of the emulated Intel E1000. Every modern Linux distribution includes VirtIO drivers out of the box. For Windows VMs, you'd need to install the [VirtIO drivers](https://pve.proxmox.com/wiki/Windows_VirtIO_Drivers) separately.
+
+### Confirm Tab
+
+Review your settings. Here's what the summary should look like for our Ubuntu VM:
+
+| Setting | Value |
+|---------|-------|
+| VM ID | 200 |
+| Name | ubuntu-server |
+| OS | Ubuntu ISO |
+| Machine | q35, SeaBIOS |
+| SCSI Controller | VirtIO SCSI single |
+| QEMU Agent | Enabled |
+| Disk | 32GB on local-lvm, SCSI, Discard + IO Thread |
+| CPU | 2 cores, host type |
+| Memory | 2048 MiB |
+| Network | VirtIO on vmbr0 |
+
+Click **Finish** to create the VM.
+
+## Step 2: Install the Operating System
+
+1. Select the VM in the sidebar
+2. Click **Start** in the top-right
+3. Click **Console** to open the display
+
+You'll see the Ubuntu Server installer boot up. Walk through the installation:
+
+1. **Language** — English (or your preference)
+2. **Keyboard** — Select your layout
+3. **Installation type** — Ubuntu Server (not minimized)
+4. **Network** — The installer should auto-detect your network via DHCP on the VirtIO NIC. If you want a static IP, configure it here.
+5. **Proxy** — Leave blank unless you use one
+6. **Mirror** — Default is fine
+7. **Storage** — Use the entire disk (the 32GB virtual disk we created)
+8. **Profile** — Set your username, server name, and password
+9. **SSH** — Check **Install OpenSSH server** (you'll want this)
+10. **Snaps** — Skip any suggested snaps
+11. **Install** — Let it complete, then select **Reboot Now**
+
+:::warning
+After the installer says "Reboot Now," Proxmox should automatically disconnect the ISO. If the VM boots back into the installer, stop the VM, go to **Hardware** → double-click the **CD/DVD Drive** → select **Do not use any media** → start the VM again.
+:::
+
+## Step 3: Install the QEMU Guest Agent
+
+After the VM reboots and you log in (via console or SSH), install the guest agent:
+
+```bash
+sudo apt update && sudo apt install -y qemu-guest-agent
+```
+
+Start and enable the service:
+
+```bash
+sudo systemctl enable --now qemu-guest-agent
+```
+
+Verify it's running:
+
+```bash
+sudo systemctl status qemu-guest-agent
+```
+
+Back in the Proxmox web interface, you should now see the VM's IP address in the **Summary** tab. Proxmox can also perform clean shutdowns and consistent snapshots.
+
+## Step 4: Verify Networking
+
+From inside the VM:
+
+```bash
+# Check your IP address
+ip addr show
+
+# Test internet connectivity
+ping -c 3 google.com
+
+# Test DNS resolution
+nslookup google.com
+```
+
+If everything works, you're all set. If not, check that `vmbr0` is bridged correctly and that your gateway and DNS are configured.
+
+## Step 5: Connect via SSH
+
+Now that SSH is installed and networking is confirmed, you can manage the VM from your own terminal:
+
+```bash
+ssh your-username@vm-ip-address
+```
+
+This is how you'll interact with the VM day-to-day — the web console is really just for initial setup and troubleshooting.
+
+## Common Operations
+
+### From the Proxmox Host
+
+```bash
+# List all VMs
+qm list
+
+# Start / stop / shutdown a VM
+qm start 200
+qm stop 200          # hard stop (like pulling the power)
+qm shutdown 200      # graceful shutdown (requires guest agent)
+
+# Open a serial console
+qm terminal 200
+
+# Check VM config
+qm config 200
+
+# Resize disk (increase only)
+qm resize 200 scsi0 +10G
+
+# Change memory
+qm set 200 -memory 4096
+
+# Change CPU cores
+qm set 200 -cores 4
+```
+
+### Snapshots
+
+Snapshots capture the VM's state at a point in time — disk, memory, and configuration. They're useful before making changes you might want to undo.
+
+```bash
+# Create a snapshot
+qm snapshot 200 before-changes --description "Before installing Docker"
+
+# List snapshots
+qm listsnapshot 200
+
+# Rollback to a snapshot
+qm rollback 200 before-changes
+```
+
+You can also manage snapshots from the web interface under the VM's **Snapshots** tab.
+
+:::warning
+Snapshots are not backups. They consume storage space as long as they exist, and too many snapshots can degrade performance. Use them for short-term safety nets, not long-term data protection.
+:::
+
+## Removing the Installation ISO
+
+After the OS is installed, the ISO is still attached to the VM (even if it's not booting from it). To clean it up:
+
+1. Select the VM → **Hardware**
+2. Double-click the **CD/DVD Drive**
+3. Select **Do not use any media**
+4. Click **OK**
+
+This is cosmetic but keeps things tidy.
+
+## What's Next
+
+You now know how to create both containers and VMs in Proxmox. From here, the guides will start building on these foundations:
+
+- **[Storage — Disks, ZFS, LVM, and Network Mounts](/blog/proxmox-storage-guide)** — add disks, create pools, mount NFS/SMB shares
+- **[Networking — VLANs, Bridges, and Firewall](/blog/proxmox-networking-guide)** — segment your network and secure traffic
+- **[Backups — Scheduling and Restoring](/blog/proxmox-backup-guide)** — protect your VMs and containers
+
+## Resources
+
+- [Proxmox VE KVM Documentation](https://pve.proxmox.com/wiki/Qemu/KVM_Virtual_Machines)
+- [QEMU Guest Agent](https://pve.proxmox.com/wiki/Qemu_Guest_Agent)
+- [VirtIO Drivers for Windows](https://pve.proxmox.com/wiki/Windows_VirtIO_Drivers)
+- [Proxmox VE CLI — qm](https://pve.proxmox.com/pve-docs/qm.1.html)

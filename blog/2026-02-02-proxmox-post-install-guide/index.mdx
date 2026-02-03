@@ -1,0 +1,275 @@
+---
+title: "Proxmox VE Post-Install Guide — What to Do After Your First Install"
+slug: proxmox-post-install-guide
+authors: [hake]
+tags: [tutorial, proxmox, homelab]
+date: 2026-02-02
+difficulty: 1
+time: 20
+draft: true
+---
+
+<InfoCard difficulty={1} time={20} />
+
+You've got Proxmox VE installed and you're staring at the web interface. Now what? Before you start creating VMs and containers, there are a few things worth setting up first. This guide covers the essential post-install steps for Proxmox VE 9.x — switching to the right repositories, updating packages, understanding your storage layout, uploading your first ISO, and getting familiar with the web UI.
+
+{/* truncate */}
+
+## Prerequisites
+
+- A working Proxmox VE 9.x installation (see the [install guide](/blog/how-to-install-proxmox-ve) if you haven't done that yet)
+- Access to the Proxmox web interface (`https://your-ip:8006`)
+- An SSH client (Terminal on macOS/Linux, or [PuTTY](https://www.putty.org/)/Windows Terminal on Windows)
+
+## Step 1: Log In and Dismiss the Subscription Notice
+
+When you first log into the web interface, you'll be greeted with a popup telling you that you don't have a valid subscription. This is normal — Proxmox VE is fully functional without a paid subscription. Click **OK** to dismiss it.
+
+This popup will appear on every login. We'll deal with it in a later step.
+
+:::note
+Proxmox offers paid enterprise subscriptions for production environments with guaranteed repository stability and support. For a homelab, the free no-subscription tier is perfectly fine.
+:::
+
+## Step 2: Connect via SSH
+
+While you can use the built-in web console (click your node → Shell), SSH is more convenient for running commands since you can copy and paste from this guide.
+
+```bash
+ssh root@your-proxmox-ip
+```
+
+Use the root password you set during installation.
+
+## Step 3: Run the Community Post-Install Script
+
+The Proxmox VE community maintains a [helper scripts collection](https://community-scripts.github.io/ProxmoxVE/) that includes a post-install script. This script automates the most common post-install tasks through an interactive menu. It handles repository configuration, subscription nag removal, and disabling unnecessary services — all the things we'd otherwise do manually.
+
+Run it from the Proxmox shell (either SSH or the web console):
+
+```bash
+bash -c "$(wget -qLO - https://github.com/community-scripts/ProxmoxVE/raw/main/tools/pve/post-pve-install.sh)"
+```
+
+:::info About These Scripts
+The community helper scripts were originally created by tteck, who passed away while the project was in active development. The community picked up the project and continues to maintain it at [community-scripts/ProxmoxVE](https://github.com/community-scripts/ProxmoxVE). It's one of the most widely used tools in the Proxmox homelab community.
+:::
+
+The script presents a series of interactive prompts. Here's what each one does and what to choose:
+
+### Correct Proxmox VE Sources
+
+**Choose: Yes**
+
+This ensures your Debian base repositories are properly configured in the modern deb822 format that Proxmox VE 9 uses. It sets up the correct Debian Trixie sources so your system can pull standard Debian packages alongside Proxmox packages.
+
+### Disable the Enterprise Repository
+
+**Choose: Yes** (unless you have a paid subscription)
+
+The enterprise repository is enabled by default but requires a subscription key. Without one, you'll get errors every time you try to update. Disabling it prevents those errors.
+
+### Enable the No-Subscription Repository
+
+**Choose: Yes**
+
+This is the repository you'll actually use for updates. It contains the same packages as the enterprise repo — they're tested here first before being promoted to enterprise. It's suitable for testing and homelab use.
+
+### Add the Ceph Repository
+
+**Choose: No** (unless you plan to use Ceph)
+
+Ceph is a distributed storage system used in multi-node clusters. For a single-node homelab setup, you don't need it.
+
+### Add the pvetest Repository
+
+**Choose: No**
+
+The test repository has the absolute latest packages, including those that haven't been fully tested. Not what you want on a system you rely on.
+
+### Disable the Subscription Nag
+
+**Choose: Yes**
+
+This removes the popup that appears on every login reminding you to buy a subscription. The script patches the web interface JavaScript to suppress it and installs a hook so the patch reapplies after Proxmox updates.
+
+### Disable High Availability
+
+**Choose: Yes** (for a single-node setup)
+
+High Availability (HA) services — `pve-ha-lrm`, `pve-ha-crm`, and `corosync` — are only useful in a multi-node Proxmox cluster. On a single node, they're consuming resources for nothing. The script disables them and they can be re-enabled later if you cluster your nodes.
+
+### Update Proxmox VE
+
+**Choose: Yes**
+
+This runs `apt update && apt dist-upgrade` to bring your system up to date with the latest packages from the repositories you just configured.
+
+### Reboot
+
+**Choose: Yes**
+
+A reboot ensures all changes take effect cleanly — especially the HA service changes and any kernel updates that were installed.
+
+:::tip
+After the reboot, clear your browser cache or do a hard refresh (`Ctrl+Shift+R` / `Cmd+Shift+R`) before logging back into the web interface. This ensures the subscription nag removal takes effect in your browser.
+:::
+
+## Step 4: Verify Everything Worked
+
+After the reboot, log back into the web interface. You should notice:
+
+- **No subscription popup** on login
+- **No repository errors** when checking for updates
+
+To verify your repositories are correct, go to your node → **Updates** → **Repositories**. You should see:
+
+| Repository | Status |
+|-----------|--------|
+| Debian Trixie (main, non-free-firmware) | Enabled |
+| Debian Trixie Security | Enabled |
+| pve-no-subscription | Enabled |
+| pve-enterprise | Disabled |
+
+You can also verify from the command line:
+
+```bash
+apt update
+```
+
+This should complete without any errors or warnings about missing subscription keys.
+
+## Step 5: Understand Your Storage
+
+Before creating anything, it helps to understand what storage Proxmox set up during installation. Navigate to **Datacenter** → **Storage** in the web interface, or click your node → **Disks** to see the physical layout.
+
+### Default Storage (ext4/XFS Install)
+
+A standard ext4 installation creates two storage entries:
+
+| Storage | Type | Used For |
+|---------|------|----------|
+| **local** | Directory | ISO images, container templates, backups, snippets |
+| **local-lvm** | LVM-Thin | VM disks, container volumes |
+
+This is a sensible default:
+- Upload ISOs and templates to **local**
+- VMs and containers automatically store their disks on **local-lvm**
+
+### Default Storage (ZFS Install)
+
+If you installed with ZFS, you'll see:
+
+| Storage | Type | Used For |
+|---------|------|----------|
+| **local-zfs** | ZFS Pool | VM disks, container volumes |
+| **local** | Directory | ISO images, container templates, backups |
+
+Same idea — ISOs go to **local**, VM/container disks go to **local-zfs**.
+
+### Checking Disk Space
+
+From the command line:
+
+```bash
+# For LVM setups
+lvs
+```
+
+```bash
+# For ZFS setups
+zpool list
+zfs list
+```
+
+Or in the web interface, click your node → **Disks** → **LVM** or **ZFS** to see a visual breakdown.
+
+:::tip
+Don't worry about configuring additional disks or complex storage right now. The defaults work well for getting started. We'll cover adding disks and advanced storage in a future guide.
+:::
+
+## Step 6: Upload an ISO
+
+Before you can create a virtual machine, you need an operating system ISO. Let's upload one so you're ready for the next step.
+
+### Method 1: Upload via the Web Interface
+
+1. In the left sidebar, expand your node and click **local** (your-node-name)
+2. Click **ISO Images**
+3. Click **Upload** and select an ISO file from your computer
+
+### Method 2: Download Directly to Proxmox
+
+If you have a direct URL to the ISO, you can have Proxmox download it for you:
+
+1. Go to **local** → **ISO Images**
+2. Click **Download from URL**
+3. Paste the URL and click **Query URL** to verify, then **Download**
+
+### Method 3: Download via Command Line
+
+```bash
+# Download directly to the ISO storage directory
+cd /var/lib/vz/template/iso/
+wget https://releases.ubuntu.com/24.04/ubuntu-24.04-live-server-amd64.iso
+```
+
+### Recommended ISOs to Start With
+
+| ISO | Why |
+|-----|-----|
+| [Ubuntu Server 24.04 LTS](https://ubuntu.com/download/server) | Widely supported, great for learning Linux |
+| [Debian 13 (Trixie)](https://www.debian.org/download) | What Proxmox itself is based on — lightweight and stable |
+
+:::note
+You don't need ISOs for Linux containers (LXC). Container templates are downloaded separately — we cover that in the [LXC container guide](/blog/proxmox-create-lxc-container).
+:::
+
+## Step 7: Tour the Web Interface
+
+Before diving into creating VMs, take a minute to get familiar with the interface layout.
+
+### Left Sidebar
+
+The tree view on the left shows your datacenter, nodes, and any VMs or containers. Expanding a node shows everything running on it.
+
+### Main Sections (When a Node is Selected)
+
+| Tab | What It Shows |
+|-----|--------------|
+| **Summary** | CPU, memory, and storage usage at a glance |
+| **Shell** | Built-in terminal (web-based SSH) |
+| **System** → **Network** | Network interfaces and bridges |
+| **System** → **DNS** | DNS server configuration |
+| **Disks** | Physical disks and their partitions |
+| **Updates** | Available package updates and repository config |
+| **Backup** | Scheduled backup jobs |
+| **Syslog** | System logs |
+
+### Datacenter Level
+
+Click **Datacenter** at the top of the sidebar to access cluster-wide settings:
+
+- **Storage** — manage storage backends
+- **Backup** — schedule automated backups
+- **Firewall** — datacenter-level firewall rules
+- **Options** — global settings like keyboard layout
+
+:::tip
+Proxmox uses **bridges** for VM networking. By default, you have `vmbr0` bridged to your physical NIC. Any VM or container attached to `vmbr0` gets network access through your physical network. You can see this under your node → **System** → **Network**.
+:::
+
+## What's Next
+
+Your Proxmox host is updated, configured, and ready to go. The next step is to start creating workloads:
+
+- **[Create your first LXC container](/blog/proxmox-create-lxc-container)** — the lightweight default for most homelab services
+- **[Create your first virtual machine](/blog/proxmox-create-virtual-machine)** — for when you need a full OS, hardware passthrough, or Windows
+- **[Storage](/blog/proxmox-storage-guide)** | **[Networking](/blog/proxmox-networking-guide)** | **[Backups](/blog/proxmox-backup-guide)** — the rest of the foundation series
+
+## Resources
+
+- [Proxmox VE Official Documentation](https://pve.proxmox.com/pve-docs/)
+- [Proxmox VE Package Repositories](https://pve.proxmox.com/wiki/Package_Repositories)
+- [Community Helper Scripts](https://community-scripts.github.io/ProxmoxVE/)
+- [Community Helper Scripts — Post Install](https://community-scripts.github.io/ProxmoxVE/scripts?id=post-pve-install)

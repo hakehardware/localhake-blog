@@ -1,0 +1,98 @@
+<svg width="1200" height="630" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Scanline pattern for retro CRT effect -->
+    <pattern id="scanlines" patternUnits="userSpaceOnUse" width="4" height="4">
+      <rect width="4" height="2" fill="rgba(0,255,0,0.03)"/>
+      <rect y="2" width="4" height="2" fill="transparent"/>
+    </pattern>
+    
+    <!-- Glow filter for text -->
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    
+    <!-- Stronger glow for main title -->
+    <filter id="strongGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="6" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  
+  <!-- Background - Dark terminal style -->
+  <rect width="1200" height="630" fill="#0a0a0f"/>
+  
+  <!-- Scanline overlay -->
+  <rect width="1200" height="630" fill="url(#scanlines)"/>
+  
+  <!-- Grid lines for retro effect -->
+  <g stroke="#1a3a1a" stroke-width="1" opacity="0.5">
+    <!-- Horizontal lines -->
+    <line x1="0" y1="100" x2="1200" y2="100"/>
+    <line x1="0" y1="530" x2="1200" y2="530"/>
+    <!-- Vertical lines -->
+    <line x1="100" y1="0" x2="100" y2="630"/>
+    <line x1="1100" y1="0" x2="1100" y2="630"/>
+  </g>
+  
+  <!-- Corner brackets - 80s terminal style -->
+  <g stroke="#00ff00" stroke-width="3" fill="none" opacity="0.8">
+    <!-- Top left -->
+    <path d="M 50,50 L 50,100 M 50,50 L 100,50"/>
+    <!-- Top right -->
+    <path d="M 1150,50 L 1150,100 M 1150,50 L 1100,50"/>
+    <!-- Bottom left -->
+    <path d="M 50,580 L 50,530 M 50,580 L 100,580"/>
+    <!-- Bottom right -->
+    <path d="M 1150,580 L 1150,530 M 1150,580 L 1100,580"/>
+  </g>
+  
+  <!-- Terminal prompt decoration -->
+  <text x="80" y="140" font-family="monospace" font-size="24" fill="#00ff00" opacity="0.6">
+    &gt;_
+  </text>
+  
+  <!-- Main title - LOCALHAKE -->
+  <text x="600" y="280" 
+        font-family="'Courier New', monospace" 
+        font-size="120" 
+        font-weight="bold"
+        fill="#00ff00" 
+        text-anchor="middle"
+        filter="url(#strongGlow)">
+    LOCALHAKE
+  </text>
+  
+  <!-- Tagline -->
+  <text x="600" y="360" 
+        font-family="'Courier New', monospace" 
+        font-size="36" 
+        fill="#ffb000" 
+        text-anchor="middle"
+        filter="url(#glow)">
+    Homelab Tutorials &amp; Documentation
+  </text>
+  
+  <!-- Decorative line under tagline -->
+  <line x1="300" y1="400" x2="900" y2="400" stroke="#ffb000" stroke-width="2" opacity="0.6"/>
+  
+  <!-- Bottom info bar -->
+  <g font-family="monospace" font-size="20" fill="#00ff00" opacity="0.7">
+    <text x="80" y="560">blog.localhake.com</text>
+    <text x="1120" y="560" text-anchor="end">@HakeHardware</text>
+  </g>
+  
+  <!-- Status indicator dots -->
+  <g>
+    <circle cx="600" cy="480" r="6" fill="#00ff00"/>
+    <circle cx="580" cy="480" r="4" fill="#ffb000"/>
+    <circle cx="620" cy="480" r="4" fill="#ffb000"/>
+  </g>
+</svg>

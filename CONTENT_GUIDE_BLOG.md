@@ -10,6 +10,7 @@ A comprehensive guide for creating blog posts on the Localhake blog. This guide 
 - [Custom Components](#custom-components)
 - [Docusaurus Features](#docusaurus-features)
 - [Images](#images)
+- [SEO Best Practices](#seo-best-practices)
 - [Templates](#templates)
 - [Pre-Publish Checklist](#pre-publish-checklist)
 
@@ -181,6 +182,36 @@ videoUrl: https://youtu.be/dQw4w9WgXcQ
 | `time` | number | Estimated completion time in minutes. Used by InfoCard component. |
 | `videoUrl` | string | YouTube video URL for the companion video. Used by InfoCard component. Supports multiple URL formats. |
 
+### SEO Fields
+
+These fields improve search engine visibility and social media sharing:
+
+```yaml
+---
+title: "How to Set Up Paperless-ngx with AI Document Processing"
+slug: paperless-ngx-ai-setup
+authors: [hake]
+tags: [paperless, ai, docker, self-hosted]
+date: 2024-01-15
+difficulty: 3
+time: 45
+videoUrl: https://youtu.be/dQw4w9WgXcQ
+description: "Learn how to set up Paperless-ngx with AI-powered document classification in Docker. Complete guide with step-by-step instructions."
+keywords: [paperless-ngx, document management, AI, OCR, docker]
+image: /img/blog/paperless-ngx-social-card.png
+---
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `description` | string | Meta description for search engines and social sharing. **Recommended: 150-160 characters.** If not provided, Docusaurus generates one from the post excerpt. |
+| `keywords` | array | Page-specific keywords for SEO. These are appended to the site-wide keywords. Use lowercase, relevant terms. |
+| `image` | string | Social card image path (relative to `static/`). Used for `og:image` and `twitter:image`. **Recommended: 1200x630px.** Falls back to site default if not specified. |
+
+:::tip SEO Best Practice
+Always include a `description` field for important posts. A well-crafted meta description improves click-through rates from search results.
+:::
+
 ### Author Definitions
 
 Authors are defined in `blog/authors.yml`. Reference them by their ID in the `authors` field:
@@ -231,6 +262,9 @@ date: 2024-01-15
 difficulty: 3
 time: 45
 videoUrl: https://youtu.be/dQw4w9WgXcQ
+description: "Learn how to set up Paperless-ngx with AI-powered document classification in Docker. Complete guide with step-by-step instructions."
+keywords: [paperless-ngx, document management, AI, OCR, docker]
+image: /img/blog/paperless-ngx-social-card.png
 ---
 ```
 
@@ -875,6 +909,98 @@ Or use HTML for more control:
 
 ---
 
+## SEO Best Practices
+
+Optimizing your blog posts for search engines helps readers discover your content. Follow these guidelines for better search visibility.
+
+### Meta Descriptions
+
+The `description` field in front matter becomes the meta description shown in search results.
+
+**Guidelines:**
+- **Length**: 150-160 characters (Google truncates longer descriptions)
+- **Include keywords**: Naturally incorporate your main topic keywords
+- **Be compelling**: Write a description that encourages clicks
+- **Be accurate**: Describe what the post actually covers
+
+**Good example:**
+```yaml
+description: "Learn how to set up Paperless-ngx with AI-powered document classification in Docker. Complete guide with step-by-step instructions."
+```
+
+**Bad examples:**
+```yaml
+# Too short - doesn't provide enough context
+description: "Paperless-ngx setup guide."
+
+# Too long - will be truncated in search results
+description: "In this comprehensive tutorial, we will walk through every single step of setting up Paperless-ngx, a powerful open-source document management system, with AI-powered document classification using Docker containers on your homelab server."
+
+# Keyword stuffing - reads unnaturally
+description: "Paperless-ngx Paperless setup Paperless Docker Paperless AI document management Paperless tutorial."
+```
+
+### Keywords
+
+The `keywords` field adds page-specific keywords that supplement the site-wide defaults.
+
+**Guidelines:**
+- Use 3-7 relevant keywords per post
+- Use lowercase, hyphenated terms
+- Include variations (e.g., "docker", "docker-compose", "containers")
+- Focus on terms people actually search for
+
+**Example:**
+```yaml
+keywords: [paperless-ngx, document-management, ai-ocr, docker-compose, self-hosted]
+```
+
+### Social Card Images
+
+The `image` field specifies a custom image for social media sharing (Open Graph and Twitter Cards).
+
+**Guidelines:**
+- **Dimensions**: 1200x630 pixels (optimal for all platforms)
+- **Format**: PNG or JPEG
+- **Location**: Store in `static/img/blog/` for shared images, or co-locate with the post
+- **Content**: Include the post title or key visual that represents the content
+- **Fallback**: If not specified, the site default social card is used
+
+**Example with co-located image:**
+```yaml
+image: /img/blog/paperless-ngx-social-card.png
+```
+
+**Creating social card images:**
+1. Use a consistent template with your branding
+2. Include the post title in readable text
+3. Use high contrast for visibility in small thumbnails
+4. Test how it looks when shared on Twitter and LinkedIn
+
+### Structured Data
+
+The site automatically generates structured data (JSON-LD) for blog posts, including:
+- **BlogPosting schema**: Helps Google understand your content for rich snippets
+- **Author information**: Links to your author profile
+- **Publication dates**: Shows when content was published/updated
+
+To maximize structured data benefits:
+- Always include a `description` field
+- Use accurate `date` values
+- Ensure author IDs match entries in `authors.yml`
+
+### SEO Checklist
+
+Add these checks to your pre-publish routine:
+
+- [ ] **Description**: Is it 150-160 characters and compelling?
+- [ ] **Keywords**: Are 3-7 relevant keywords included?
+- [ ] **Image**: Is a custom social card image provided for important posts?
+- [ ] **Title**: Is it descriptive and includes main keywords?
+- [ ] **Tags**: Are tags relevant and consistent with existing posts?
+
+---
+
 ## Templates
 
 Copy-paste templates for creating new blog posts.
@@ -890,6 +1016,8 @@ slug: your-post-slug
 authors: [hake]
 tags: [tag1, tag2, tag3]
 date: 2024-06-15
+description: "A brief, compelling description of your post (150-160 characters recommended)."
+keywords: [keyword1, keyword2, keyword3]
 ---
 
 Your introduction paragraph goes here. This appears in the blog listing and should summarize what the post covers.
@@ -945,6 +1073,9 @@ date: 2024-06-15
 difficulty: 3
 time: 30
 videoUrl: https://youtu.be/YOUR_VIDEO_ID
+description: "A brief, compelling description of your tutorial (150-160 characters recommended)."
+keywords: [tutorial-topic, docker, self-hosted]
+image: /img/blog/your-tutorial-social-card.png
 ---
 
 <InfoCard difficulty={3} time={30} videoUrl="https://youtu.be/YOUR_VIDEO_ID" />
@@ -1062,6 +1193,7 @@ slug: quick-update-slug
 authors: [hake]
 tags: [update, announcement]
 date: 2024-06-15
+description: "Brief description of the update or announcement (150-160 characters)."
 ---
 
 Brief announcement or update content. This template is for shorter posts that don't need the full tutorial structure.
@@ -1091,6 +1223,12 @@ Before publishing your blog post, verify the following:
 - [ ] **Tags**: Are tags lowercase and consistent with existing tags?
 - [ ] **Date**: Is the date correct and in `YYYY-MM-DD` format?
 - [ ] **Optional fields**: If using InfoCard, are `difficulty`, `time`, and `videoUrl` set?
+
+### SEO Fields
+
+- [ ] **Description**: Is it 150-160 characters and compelling?
+- [ ] **Keywords**: Are 3-7 relevant keywords included?
+- [ ] **Image**: Is a custom social card image provided for important posts?
 
 ### Content Quality
 

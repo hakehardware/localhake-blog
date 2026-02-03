@@ -1,0 +1,301 @@
+---
+title: "How to Create Your First LXC Container in Proxmox VE"
+slug: proxmox-create-lxc-container
+authors: [hake]
+tags: [tutorial, proxmox, homelab]
+date: 2026-02-02
+difficulty: 1
+time: 15
+draft: true
+---
+
+<InfoCard difficulty={1} time={15} />
+
+LXC containers are the workhorse of most Proxmox homelabs. They're lightweight, fast, and use a fraction of the resources a full VM requires. In this guide, we'll download a container template, create a Debian container, configure its networking, and log in — giving you a running Linux environment in under five minutes.
+
+{/* truncate */}
+
+## Prerequisites
+
+- A working Proxmox VE 9.x installation with the [post-install steps](/blog/proxmox-post-install-guide) completed
+- Access to the web interface (`https://your-ip:8006`)
+
+## VMs vs Containers — When to Use Which
+
+Before we dive in, it's worth understanding why you'd pick a container over a VM.
+
+| | LXC Container | Virtual Machine |
+|---|---|---|
+| **Kernel** | Shares the host kernel | Runs its own kernel |
+| **Boot time** | Seconds | 30+ seconds |
+| **RAM overhead** | Minimal | Needs its own OS in memory |
+| **Disk overhead** | Minimal | Full OS install |
+| **Isolation** | Process-level (namespaces) | Full hardware-level |
+| **Use case** | Most Linux services, Docker hosts | Full OS (Windows, HAOS), hardware passthrough, untrusted workloads |
+
+**Rule of thumb:** Use a container unless you need a full OS, hardware passthrough, or you're running something you don't fully trust. Containers are the default choice for homelabs.
+
+## Step 1: Download a Container Template
+
+Before you can create a container, you need a template — a minimal root filesystem image for your chosen Linux distribution.
+
+### Via the Web Interface
+
+1. In the left sidebar, expand your node and click **local** (your-node-name)
+2. Click **CT Templates**
+3. Click **Templates**
+4. Find **debian-12-standard** in the list (or search for it)
+5. Click **Download**
+
+Wait for the download to finish. You'll see a task log confirming success.
+
+### Via the Command Line
+
+```bash
+# Update the template database
+pveam update
+
+# List available system templates
+pveam available --section system
+```
+
+You'll see a list of templates. Download Debian 12:
+
+```bash
+# Download the Debian 12 template to local storage
+pveam download local debian-12-standard_12.7-1_amd64.tar.zst
+```
+
+:::note
+The template version number may differ — use whatever is listed by `pveam available`. Debian 12 (Bookworm) is a solid default choice for containers.
+:::
+
+## Step 2: Create the Container
+
+### Via the Web Interface
+
+Click **Create CT** in the top-right corner of the web interface. This opens the container creation wizard.
+
+### General Tab
+
+| Field | What to Enter |
+|-------|--------------|
+| **Node** | Your Proxmox node (auto-selected if you only have one) |
+| **CT ID** | A unique numeric ID, e.g., `100` |
+| **Hostname** | A name for the container, e.g., `debian-test` |
+| **Password** | Root password for the container |
+| **Confirm Password** | Same password again |
+
+Leave **Unprivileged container** checked — this is the default and is the recommended setting.
+
+:::info Privileged vs Unprivileged
+**Unprivileged** containers map the container's root user to a non-root user on the host. Even if something escapes the container, it has no host-level privileges. This is what you should use for almost everything.
+
+**Privileged** containers give the container's root user actual root-level access on the host. Only use these when absolutely required (certain NFS setups, some hardware access scenarios).
+:::
+
+### Template Tab
+
+| Field | What to Enter |
+|-------|--------------|
+| **Storage** | `local` |
+| **Template** | Select the Debian 12 template you downloaded |
+
+### Disks Tab
+
+| Field | What to Enter |
+|-------|--------------|
+| **Storage** | `local-lvm` (or `local-zfs` if you installed with ZFS) |
+| **Disk size** | `8` GB is fine for a basic container. Adjust based on what you plan to run. |
+
+### CPU Tab
+
+| Field | What to Enter |
+|-------|--------------|
+| **Cores** | `1` — plenty for a basic container. Increase later if needed. |
+
+### Memory Tab
+
+| Field | What to Enter |
+|-------|--------------|
+| **Memory** | `512` MB — enough for a minimal Debian container |
+| **Swap** | `512` MB |
+
+:::tip
+These resources are soft limits — the container only uses what it actually needs. You can always increase them later without recreating the container. Start small and scale up.
+:::
+
+### Network Tab
+
+| Field | What to Enter |
+|-------|--------------|
+| **Bridge** | `vmbr0` (the default bridge connected to your physical NIC) |
+| **IPv4** | `Static` — then enter an IP like `192.168.1.100/24` |
+| **Gateway** | Your router's IP, e.g., `192.168.1.1` |
+| **IPv6** | Leave as `Static` with empty fields (unless you use IPv6) |
+
+:::warning
+Pick a static IP outside your router's DHCP range to avoid conflicts. Alternatively, you can select `DHCP` to have your router assign an address — but static is recommended so you always know where to find the container.
+:::
+
+### DNS Tab
+
+| Field | What to Enter |
+|-------|--------------|
+| **DNS domain** | Leave blank (inherits from host) |
+| **DNS servers** | Leave blank (inherits from host) or enter your DNS server |
+
+### Confirm Tab
+
+Review everything, then click **Finish**. The container is created in seconds.
+
+## Step 3: Start the Container
+
+The container doesn't start automatically. You can start it in two ways:
+
+**Web interface:** Select the container in the sidebar, then click **Start** in the top-right.
+
+**Command line:**
+
+```bash
+pct start 100
+```
+
+## Step 4: Log In
+
+### Via the Web Interface Console
+
+Select your container in the sidebar, then click **Console**. You'll see a login prompt:
+
+```
+debian-test login: root
+Password: (enter the password you set during creation)
+```
+
+### Via SSH (From Your Local Machine)
+
+If you assigned a static IP during creation:
+
+```bash
+ssh root@192.168.1.100
+```
+
+:::note
+SSH may not accept root password login by default on some templates. If it doesn't work, use the web console first and check `/etc/ssh/sshd_config` for `PermitRootLogin`.
+:::
+
+## Step 5: Update the Container
+
+First thing you should do inside any new container — update the packages:
+
+```bash
+apt update && apt upgrade -y
+```
+
+## Step 6: Verify Networking
+
+Make sure the container can reach the internet:
+
+```bash
+ping -c 3 google.com
+```
+
+If that works, your container has working DNS and internet access. If it doesn't, double-check:
+
+- The IP address and gateway you configured
+- That `vmbr0` is correctly bridged to your physical NIC (check under your node → System → Network)
+- That your DNS server is reachable
+
+## Common Operations
+
+Here are the commands you'll use most often to manage containers.
+
+### From the Proxmox Host
+
+```bash
+# List all containers
+pct list
+
+# Start / stop / restart a container
+pct start 100
+pct stop 100
+pct restart 100
+
+# Open a shell inside the container (no SSH needed)
+pct enter 100
+
+# Check container config
+pct config 100
+
+# Resize disk (increase only)
+pct resize 100 rootfs +5G
+
+# Change memory
+pct set 100 -memory 1024
+
+# Change CPU cores
+pct set 100 -cores 2
+```
+
+### From Inside the Container
+
+The container is a normal Linux environment. Install packages, run services, and configure things exactly as you would on a regular Debian system.
+
+```bash
+# Install a package
+apt install nginx
+
+# Check running services
+systemctl status nginx
+
+# View resource usage
+free -h
+df -h
+```
+
+## Enabling Nesting (For Docker Inside LXC)
+
+If you plan to run Docker inside this container, you need to enable **nesting**. This is a common setup for homelab services that ship as Docker Compose stacks.
+
+You can enable it on an existing container (stop it first):
+
+**Web interface:** Select the container → **Options** → **Features** → check **Nesting** and **keyctl**
+
+**Command line:**
+
+```bash
+# Stop the container first
+pct stop 100
+
+# Enable nesting and keyctl
+pct set 100 -features nesting=1,keyctl=1
+
+# Start it again
+pct start 100
+```
+
+After this, you can install Docker inside the container normally:
+
+```bash
+pct enter 100
+apt update && apt install -y curl
+curl -fsSL https://get.docker.com | sh
+```
+
+:::note
+For most workloads, Docker-inside-LXC works great and is lighter than running Docker inside a full VM. If you need maximum isolation or plan to do live migration, a VM is the better choice.
+:::
+
+## What's Next
+
+You've got a running container — now you can install whatever service you want inside it. In the next guide, we'll cover [creating a virtual machine](/blog/proxmox-create-virtual-machine) for situations where a full VM is the better tool. After that:
+
+- **[Storage — Disks, ZFS, LVM, and Network Mounts](/blog/proxmox-storage-guide)** — add disks, create pools, mount NFS/SMB shares
+- **[Networking — VLANs, Bridges, and Firewall](/blog/proxmox-networking-guide)** — segment your network and secure traffic
+- **[Backups — Scheduling and Restoring](/blog/proxmox-backup-guide)** — protect your VMs and containers
+
+## Resources
+
+- [Proxmox VE LXC Documentation](https://pve.proxmox.com/wiki/Linux_Container)
+- [Proxmox Container Toolkit (pct)](https://pve.proxmox.com/pve-docs/pct.1.html)
+- [pveam — Proxmox Appliance Manager](https://pve.proxmox.com/pve-docs/pveam.1.html)

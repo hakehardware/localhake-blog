@@ -9,6 +9,27 @@ const config: Config = {
   tagline: 'Homelab tutorials and documentation',
   favicon: 'img/favicon.png',
 
+  // Organization JSON-LD structured data for SEO (Requirements 2.1-2.5)
+  headTags: [
+    {
+      tagName: 'script',
+      attributes: {
+        type: 'application/ld+json',
+      },
+      innerHTML: JSON.stringify({
+        '@context': 'https://schema.org',
+        '@type': 'Organization',
+        name: 'Localhake',
+        url: 'https://blog.localhake.com',
+        logo: 'https://blog.localhake.com/img/favicon.png',
+        sameAs: [
+          'https://youtube.com/@HakeHardware',
+          'https://github.com/hakehardware/localhake-blog',
+        ],
+      }),
+    },
+  ],
+
   // Future flags, see https://docusaurus.io/docs/api/docusaurus-config#future
   future: {
     v4: true, // Improve compatibility with the upcoming Docusaurus v4
@@ -73,13 +94,35 @@ const config: Config = {
         theme: {
           customCss: './src/css/custom.css',
         },
+        // Sitemap configuration for SEO (Requirements 6.1, 6.4, 6.5, 6.6, 6.7)
+        sitemap: {
+          lastmod: 'date',
+          changefreq: 'weekly',
+          priority: 0.5,
+          ignorePatterns: ['/blog/tags/**'],
+          filename: 'sitemap.xml',
+        },
       } satisfies Preset.Options,
     ],
   ],
 
   themeConfig: {
-    // Replace with your project's social card
-    image: 'img/docusaurus-social-card.jpg',
+    // Site-wide social card image for Open Graph and Twitter Cards
+    image: 'img/localhake-social-card.png',
+    
+    // Global meta tags for SEO and social sharing
+    metadata: [
+      // Twitter Card defaults (Requirement 1.1)
+      { name: 'twitter:card', content: 'summary_large_image' },
+      { name: 'twitter:site', content: '@HakeHardware' },
+      
+      // Google Discover optimization (Requirement 1.3)
+      { name: 'robots', content: 'max-image-preview:large' },
+      
+      // Site-wide keywords (Requirement 1.4)
+      { name: 'keywords', content: 'homelab, self-hosted, proxmox, docker, tutorials, linux, virtualization' },
+    ],
+    
     colorMode: {
       defaultMode: 'dark',
       disableSwitch: false,

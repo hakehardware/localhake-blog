@@ -1,0 +1,301 @@
+---
+title: "Proxmox VE Networking — VLANs, Bridges, and Firewall"
+slug: proxmox-networking-guide
+authors: [hake]
+tags: [tutorial, proxmox, networking, homelab]
+date: 2026-02-02
+difficulty: 3
+time: 30
+draft: true
+---
+
+<InfoCard difficulty={3} time={30} />
+
+Out of the box, Proxmox gives every VM and container access to your network through a single bridge. That works fine for getting started, but as your homelab grows you'll want to separate traffic — keep IoT devices away from your servers, put management interfaces on their own network, or isolate a test lab. In this guide, we'll cover how Proxmox networking works, how to set up VLANs, and how to use the built-in firewall.
+
+{/* truncate */}
+
+## Prerequisites
+
+- A working Proxmox VE 9.x installation with the [post-install steps](/blog/proxmox-post-install-guide) completed
+- Familiarity with [containers](/blog/proxmox-create-lxc-container) and [VMs](/blog/proxmox-create-virtual-machine)
+- A managed switch that supports VLANs (if you want to use VLANs with physical network segmentation)
+
+:::warning
+Networking changes can lock you out of the web interface if done incorrectly. Always have physical console access (monitor + keyboard) or an IPMI/iDRAC connection before making network changes.
+:::
+
+## How Proxmox Networking Works
+
+### The Default Setup
+
+After installation, Proxmox creates one Linux bridge:
+
+```
+vmbr0 ← connected to your physical NIC (e.g., enp1s0)
+```
+
+Every VM and container you create attaches to `vmbr0`, which bridges traffic to your physical network. It's essentially a virtual switch — anything connected to `vmbr0` can talk to anything else on `vmbr0` and to the physical network.
+
+You can see this under your node → **System** → **Network**.
+
+### Key Concepts
+
+| Term | What It Is |
+|------|-----------|
+| **Bridge (vmbr)** | A virtual switch that connects VMs, containers, and physical NICs together |
+| **VLAN** | A virtual LAN — logically separates network traffic on the same physical wire |
+| **VLAN tag** | A numeric ID (1–4094) that identifies which VLAN a packet belongs to |
+| **Trunk port** | A switch port that carries multiple VLANs (tagged traffic) |
+| **Access port** | A switch port that carries a single VLAN (untagged traffic) |
+| **VLAN-aware bridge** | A bridge that understands VLAN tags and can route them to the right guests |
+
+## Setting Up VLANs
+
+VLANs let you segment your network so that devices on VLAN 10 can't talk to devices on VLAN 20 without going through a router or firewall. Common homelab VLANs might include:
+
+| VLAN | Purpose |
+|------|---------|
+| 10 | Servers and infrastructure |
+| 20 | Lab / testing |
+| 30 | IoT devices |
+| 99 | Management |
+
+### Step 1: Make Your Bridge VLAN-Aware
+
+By default, `vmbr0` is not VLAN-aware. You need to enable this so it can handle tagged traffic.
+
+**Web interface:**
+
+1. Go to your node → **System** → **Network**
+2. Double-click `vmbr0`
+3. Check **VLAN aware**
+4. Click **OK**
+5. Click **Apply Configuration** at the top
+
+**Command line:**
+
+Edit `/etc/network/interfaces`:
+
+```bash title="/etc/network/interfaces"
+auto vmbr0
+iface vmbr0 inet static
+    address 192.168.1.10/24
+    gateway 192.168.1.1
+    bridge-ports enp1s0
+    bridge-stp off
+    bridge-fd 0
+    bridge-vlan-aware yes
+    bridge-vids 2-4094
+```
+
+Apply without reboot (Proxmox uses ifupdown2):
+
+```bash
+ifreload -a
+```
+
+:::info What Does bridge-vids Mean?
+`bridge-vids 2-4094` tells the bridge which VLAN IDs are allowed to pass through. The default range (2–4094) allows all VLANs. You can restrict this to only the VLANs you use, like `bridge-vids 10 20 30 99`, but the full range is fine for most setups.
+:::
+
+### Step 2: Configure Your Switch
+
+Your physical switch needs to be configured to trunk VLANs on the port connected to your Proxmox host. The exact steps depend on your switch, but the general idea is:
+
+1. Set the switch port connected to Proxmox as a **trunk port**
+2. Allow the VLANs you want to pass through (e.g., 10, 20, 30, 99)
+3. Set a **native VLAN** (untagged) for the Proxmox management interface — usually VLAN 1 or whatever VLAN your management network is on
+
+:::note
+If you're using a UniFi switch, this is done in the UniFi controller under the port profile settings. For other managed switches, look for "VLAN" or "802.1Q" in the switch admin interface.
+:::
+
+### Step 3: Assign VLANs to Guests
+
+Once the bridge is VLAN-aware, you assign VLAN tags per-guest in their network settings.
+
+**Web interface:**
+
+1. Select your VM or container
+2. Go to **Hardware** (VM) or **Network** (container)
+3. Edit the network interface
+4. Set the **VLAN Tag** field to the desired VLAN ID (e.g., `10`)
+5. Click **OK**
+
+**CLI (container):**
+
+```bash
+pct set 100 -net0 name=eth0,bridge=vmbr0,tag=10,ip=10.1.10.100/24,gw=10.1.10.1
+```
+
+**CLI (VM):**
+
+```bash
+qm set 200 -net0 virtio,bridge=vmbr0,tag=10
+```
+
+The guest now sends and receives traffic on VLAN 10 only. It can't see traffic on other VLANs unless your router routes between them.
+
+### Step 4: Put the Proxmox Host on a VLAN (Optional)
+
+By default, the Proxmox management interface runs on the untagged (native) VLAN. If you want to put the host itself on a specific VLAN:
+
+```bash title="/etc/network/interfaces"
+auto vmbr0
+iface vmbr0 inet manual
+    bridge-ports enp1s0
+    bridge-stp off
+    bridge-fd 0
+    bridge-vlan-aware yes
+    bridge-vids 2-4094
+
+auto vmbr0.99
+iface vmbr0.99 inet static
+    address 10.1.99.10/24
+    gateway 10.1.99.1
+```
+
+This puts the Proxmox management interface on VLAN 99. Make sure your switch and router are configured for this VLAN before applying, or you'll lose access.
+
+:::danger
+If you move the management interface to a VLAN and something is misconfigured, you'll lose web and SSH access. Have physical console access ready. Test on a lab machine first.
+:::
+
+## The Proxmox Firewall
+
+Proxmox includes a built-in firewall that operates at three levels: datacenter, host, and VM/container. It's completely disabled by default.
+
+### How It Works
+
+When enabled, the default policy is:
+
+- **Incoming traffic: DROP** (blocked)
+- **Outgoing traffic: ACCEPT** (allowed)
+
+Proxmox automatically allows essential traffic (web interface on port 8006, SSH on port 22) so you don't lock yourself out immediately. But you should still be careful.
+
+### Enabling the Firewall
+
+#### Step 1: Enable at the Datacenter Level
+
+**Web interface:** Go to **Datacenter** → **Firewall** → **Options** → set **Firewall** to **Yes**
+
+**Config file:** Edit `/etc/pve/firewall/cluster.fw`:
+
+```ini title="/etc/pve/firewall/cluster.fw"
+[OPTIONS]
+enable: 1
+```
+
+#### Step 2: Enable Per-VM/Container
+
+The firewall is also controlled per network interface. When creating a VM or container, the **Firewall** checkbox on the network interface must be checked for rules to apply to that guest.
+
+**Existing guest:** Edit the network interface in Hardware/Network and check **Firewall**.
+
+### Adding Rules
+
+Rules are added at each level. Here are common examples:
+
+#### Allow SSH from Your Network
+
+**Web interface:** Datacenter → Firewall → Add rule:
+
+| Field | Value |
+|-------|-------|
+| Direction | IN |
+| Action | ACCEPT |
+| Macro | SSH |
+| Source | `192.168.1.0/24` |
+| Enable | Yes |
+
+#### Allow HTTP/HTTPS to a Web Server VM
+
+On the specific VM → Firewall → Add rule:
+
+| Field | Value |
+|-------|-------|
+| Direction | IN |
+| Action | ACCEPT |
+| Macro | HTTP |
+| Enable | Yes |
+
+Add another rule for HTTPS (macro: HTTPS).
+
+#### Block Everything Except Specific Ports
+
+Since the default incoming policy is DROP, you only need to add ACCEPT rules for what you want to allow. Everything else is blocked automatically.
+
+### Firewall Macros
+
+Proxmox includes predefined macros for common services so you don't have to remember port numbers:
+
+| Macro | Ports |
+|-------|-------|
+| SSH | TCP 22 |
+| HTTP | TCP 80 |
+| HTTPS | TCP 443 |
+| DNS | UDP/TCP 53 |
+| Ping | ICMP |
+| SMB | TCP 445 |
+| SMTP | TCP 25 |
+
+You can see the full list under Datacenter → Firewall → Add → Macro dropdown.
+
+### IP Sets
+
+IP Sets let you define groups of IPs that you can reference in rules. This is useful for creating a "management" group:
+
+1. Go to **Datacenter** → **Firewall** → **IPSet** → **Create**
+2. Name it `management`
+3. Add your management IPs (e.g., `192.168.1.0/24`)
+4. Use `+management` as the source in rules
+
+### Security Groups
+
+Security Groups are reusable collections of rules. Define a group once (e.g., "webserver" with HTTP + HTTPS rules), then apply it to multiple VMs:
+
+1. **Datacenter** → **Firewall** → **Security Group** → **Create**
+2. Name it `webserver`
+3. Add HTTP and HTTPS ACCEPT rules
+4. On each web server VM → **Firewall** → **Insert: Security Group** → select `webserver`
+
+:::tip
+Start with the firewall disabled and get your network working first. Once everything is communicating correctly, enable the firewall and add rules incrementally. It's much easier to troubleshoot connectivity issues when you know the firewall isn't the variable.
+:::
+
+## Troubleshooting
+
+### Can't Access Web Interface After Network Changes
+
+1. Connect a monitor and keyboard directly to the Proxmox host
+2. Log in at the console
+3. Check the current config: `cat /etc/network/interfaces`
+4. Fix the configuration and run `ifreload -a`
+
+### Guest Can't Reach the Network
+
+1. Verify the bridge exists: `brctl show` or `ip link show vmbr0`
+2. Check the guest's VLAN tag matches what your switch expects
+3. Verify the guest has the right IP, subnet mask, and gateway
+4. Test from the Proxmox host: `ping guest-ip`
+
+### VLAN Traffic Not Working
+
+1. Confirm `bridge-vlan-aware yes` is set on the bridge
+2. Confirm the physical switch port is configured as a trunk
+3. Confirm the VLANs are allowed on the trunk port
+4. Test from the host with: `tcpdump -i vmbr0 -e vlan`
+
+## What's Next
+
+Your network is segmented and secured. The last piece of the foundation is protecting your work with backups:
+
+- **[Backups — Scheduling and Restoring](/blog/proxmox-backup-guide)** — schedule automated backups and practice restoring them
+
+## Resources
+
+- [Proxmox VE Network Configuration](https://pve.proxmox.com/wiki/Network_Configuration)
+- [Proxmox VE Firewall](https://pve.proxmox.com/wiki/Firewall)
+- [Proxmox VE Administration Guide — Networking](https://pve.proxmox.com/pve-docs/pve-admin-guide.html)

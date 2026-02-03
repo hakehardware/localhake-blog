@@ -1,0 +1,320 @@
+---
+title: "Proxmox VE Backups — Scheduling, Retention, and Restoring"
+slug: proxmox-backup-guide
+authors: [hake]
+tags: [tutorial, proxmox, homelab]
+date: 2026-02-02
+difficulty: 2
+time: 20
+draft: true
+---
+
+<InfoCard difficulty={2} time={20} />
+
+Backups are the most important thing in your homelab that you'll never think about — until something breaks. Proxmox VE has a solid built-in backup system that can snapshot your VMs and containers on a schedule, manage retention for you, and restore everything with a few clicks. In this guide, we'll set up scheduled backups, configure retention policies, and practice restoring from a backup.
+
+{/* truncate */}
+
+## Prerequisites
+
+- A working Proxmox VE 9.x installation with the [post-install steps](/blog/proxmox-post-install-guide) completed
+- At least one VM or container to back up
+- A storage backend configured for backups (the default `local` storage works, or a [network mount](/blog/proxmox-storage-guide#network-storage-nfs) for offsite backups)
+
+## Backup Basics
+
+Every Proxmox backup is a **full backup** — it contains the complete VM or container configuration plus all disk data. There are no incremental backups at this level (that's what Proxmox Backup Server adds, which is a separate product for a future guide).
+
+Backups are stored as files:
+- **VMs:** `.vma` files (Proxmox VMA archive format)
+- **Containers:** `.tar` files
+- Both can be compressed with zstd, gzip, or lzo
+
+## Backup Modes
+
+How Proxmox handles a running guest during backup:
+
+### For Virtual Machines
+
+| Mode | Downtime | Consistency | When to Use |
+|------|----------|-------------|-------------|
+| **Snapshot** | None | Good (with guest agent: excellent) | Default — use this for most VMs |
+| **Suspend** | Brief | Good | Rarely needed |
+| **Stop** | Full shutdown | Perfect | When you need guaranteed consistency |
+
+**Snapshot mode** is the default and what you should use. The VM keeps running while Proxmox copies disk blocks in the background. If you have the [QEMU Guest Agent](/blog/proxmox-create-virtual-machine#step-3-install-the-qemu-guest-agent) installed, Proxmox will freeze the filesystem briefly for a consistent snapshot.
+
+**Stop mode** shuts down the VM, backs it up, then starts it again. Use this for databases or anything where you need absolute consistency and can tolerate a few minutes of downtime.
+
+### For Containers
+
+| Mode | Downtime | Consistency | When to Use |
+|------|----------|-------------|-------------|
+| **Snapshot** | Brief pause | Good | Default for most containers |
+| **Suspend** | Brief | Good | Uses rsync — needs extra disk space |
+| **Stop** | Full stop | Perfect | When consistency matters most |
+
+For containers, **snapshot mode** works well on LVM-Thin and ZFS storage (both support storage-level snapshots). The container is paused briefly while the snapshot is created, then resumes.
+
+:::tip
+For most homelab setups, snapshot mode across the board is the right choice. Only switch to stop mode for guests running databases where you've seen consistency issues.
+:::
+
+## Step 1: Run a Manual Backup
+
+Before setting up automation, let's run a single backup to see how it works.
+
+### Via the Web Interface
+
+1. Select your VM or container in the sidebar
+2. Click **Backup** → **Backup Now**
+3. Configure:
+
+| Field | Value |
+|-------|-------|
+| **Storage** | `local` (or your backup storage) |
+| **Mode** | `Snapshot` |
+| **Compression** | `ZSTD` |
+| **Notes template** | Leave default or add a description |
+
+4. Click **Backup**
+
+A task log opens showing progress. When it finishes, you'll see the backup listed under the guest's **Backup** tab.
+
+### Via the Command Line
+
+```bash
+# Backup VM 200 to local storage with snapshot mode and zstd compression
+vzdump 200 --storage local --mode snapshot --compress zstd
+```
+
+```bash
+# Backup container 100
+vzdump 100 --storage local --mode snapshot --compress zstd
+```
+
+```bash
+# Backup multiple guests at once
+vzdump 100 200 --storage local --mode snapshot --compress zstd
+```
+
+## Step 2: Schedule Automated Backups
+
+This is where it gets useful. Set up a job once and forget about it.
+
+### Via the Web Interface
+
+1. Go to **Datacenter** → **Backup** → **Add**
+2. Configure the job:
+
+| Field | Value |
+|-------|-------|
+| **Node** | Your node (or `--All--` for cluster-wide) |
+| **Storage** | `local` (or your backup storage) |
+| **Schedule** | Pick from the dropdown or enter a custom schedule |
+| **Selection mode** | `All` (backs up everything) or `Include selected VMs` |
+| **Mode** | `Snapshot` |
+| **Compression** | `ZSTD` |
+| **Retention** | Configure keep-last, keep-daily, etc. (see next section) |
+| **Enabled** | Yes |
+
+3. Click **Create**
+
+### Schedule Examples
+
+The schedule uses systemd calendar event syntax:
+
+| Schedule | When It Runs |
+|----------|-------------|
+| `daily 02:00` | Every day at 2 AM |
+| `sat 03:00` | Every Saturday at 3 AM |
+| `mon,wed,fri 01:00` | Monday, Wednesday, Friday at 1 AM |
+| `daily 22:00` | Every day at 10 PM |
+| `*-*-1 04:00` | First day of every month at 4 AM |
+
+:::tip
+Schedule backups during off-hours when your VMs aren't under heavy load. For a homelab, 2–3 AM is usually a safe bet. If you have multiple guests, Proxmox backs them up sequentially (one at a time) to avoid overwhelming the host.
+:::
+
+### Staggered Schedules
+
+If you have guests on different hosts or with different importance levels, consider staggered schedules:
+
+| Job | Guests | Schedule | Retention |
+|-----|--------|----------|-----------|
+| Critical | Pi-hole, Caddy, Vaultwarden | Daily 01:00 | 7 daily, 4 weekly |
+| Standard | Jellyfin, Navidrome, other services | Daily 03:00 | 3 daily, 2 weekly |
+| Lab | Test containers | Weekly sat 04:00 | 2 last |
+
+## Step 3: Configure Retention
+
+Retention policies control how many backups to keep. Without retention, backups pile up until your storage is full.
+
+### Retention Options
+
+| Option | What It Keeps |
+|--------|--------------|
+| `keep-last` | The N most recent backups, regardless of date |
+| `keep-daily` | One backup per day, for the last N days |
+| `keep-weekly` | One backup per week, for the last N weeks |
+| `keep-monthly` | One backup per month, for the last N months |
+| `keep-yearly` | One backup per year, for the last N years |
+
+These can be combined. Proxmox processes them in order and a backup that matches any rule is kept.
+
+### Recommended Starting Point
+
+For a homelab, this is a reasonable default:
+
+| Option | Value | Effect |
+|--------|-------|--------|
+| `keep-daily` | 7 | Last 7 days of daily backups |
+| `keep-weekly` | 4 | Last 4 weekly backups |
+| `keep-monthly` | 3 | Last 3 monthly backups |
+
+This gives you about 2 months of backup history without consuming excessive storage.
+
+### Setting Retention on Storage
+
+You can set default retention on the storage itself, so every backup job using that storage inherits the policy:
+
+**Web interface:** Go to **Datacenter** → **Storage** → double-click your backup storage → **Backup Retention** section
+
+**CLI:**
+
+```bash
+pvesm set local --prune-backups keep-daily=7,keep-weekly=4,keep-monthly=3
+```
+
+### Setting Retention Per Job
+
+You can also override retention per backup job when creating the scheduled job. Per-job retention takes priority over storage-level retention.
+
+## Step 4: Verify Your Backups
+
+A backup you haven't tested is a backup you can't trust. Let's verify one works.
+
+### Check Backup Size and Status
+
+**Web interface:** Click your VM or container → **Backup** tab. You'll see a list of backups with their date, size, and compression.
+
+**CLI:**
+
+```bash
+# List backups on local storage
+vzdump list --storage local
+```
+
+Or list the backup directory directly:
+
+```bash
+ls -lh /var/lib/vz/dump/
+```
+
+### Inspect Backup Contents
+
+You can browse what's inside a backup without restoring it:
+
+**Web interface:** On the Backup tab, select a backup → **Show Configuration** to see the guest config that was captured.
+
+## Step 5: Restore from a Backup
+
+This is the part that matters. Let's restore a backup to prove the whole system works.
+
+### Restore to a New ID (Non-Destructive)
+
+This creates a new VM or container from the backup without touching the original. It's the safest way to test.
+
+**Web interface:**
+
+1. Go to the storage where backups are stored (e.g., **local** → **Backups**)
+2. Select the backup file
+3. Click **Restore**
+4. Set a **new CT/VM ID** (e.g., `999`) so it doesn't overwrite the original
+5. Select the target storage for the restored disks
+6. Click **Restore**
+
+**CLI (container):**
+
+```bash
+# Restore container backup to a new ID
+pct restore 999 /var/lib/vz/dump/vzdump-lxc-100-2026_02_02-01_00_00.tar.zst --storage local-lvm
+```
+
+**CLI (VM):**
+
+```bash
+# Restore VM backup to a new ID
+qmrestore /var/lib/vz/dump/vzdump-qemu-200-2026_02_02-01_00_00.vma.zst 999 --storage local-lvm
+```
+
+### Restore Over the Original (Destructive)
+
+If you need to roll back a guest to a previous state:
+
+1. **Stop** the original VM or container
+2. Restore the backup using the **same ID**
+3. Proxmox will overwrite the existing guest
+
+:::danger
+Restoring over an existing guest replaces everything — configuration, disks, all data since the backup was taken. Make sure this is what you want.
+:::
+
+### Verify the Restore
+
+After restoring, start the guest and verify:
+
+- It boots correctly
+- Services are running
+- Data is intact
+- Networking works
+
+```bash
+# Start the restored guest
+pct start 999   # container
+qm start 999    # VM
+```
+
+Then log in via console or SSH and check that everything looks right.
+
+:::tip Test Restores Regularly
+Pick a backup once a month and restore it to a temporary ID. Verify it works, then delete it. This takes five minutes and is the only way to know your backups are actually usable. A backup that can't be restored is worthless.
+:::
+
+## Backup Notifications
+
+Proxmox can notify you when backup jobs complete or fail. This is configured in the backup job settings:
+
+**Web interface:** When creating or editing a backup job under **Datacenter** → **Backup**, look for the **Notification** section. Options include:
+
+- **Always** — notify on success and failure
+- **Failure** — only notify on failure
+- **Never** — no notifications
+
+Notifications are sent to the email address configured during installation, or through the Proxmox notification system (configurable under **Datacenter** → **Notifications**).
+
+## Compression Comparison
+
+| Algorithm | Speed | Compression Ratio | Multi-threaded | Recommended |
+|-----------|-------|-------------------|---------------|-------------|
+| **ZSTD** | Fast | Good | Yes | Yes — best all-around |
+| **LZO** | Fastest | Lower | No | Only if speed is critical |
+| **GZIP** | Slow | Good | Via pigz | No — ZSTD is better |
+
+Use **ZSTD** unless you have a specific reason not to. It's the default in modern Proxmox for good reason.
+
+## What's Next
+
+You now have a complete Proxmox foundation — installation, post-install configuration, containers, VMs, storage, networking, and backups. From here, you're ready for service-specific guides:
+
+- **Setting up Pi-hole** — network-wide ad blocking in an LXC container
+- **Setting up Caddy** — reverse proxy with automatic HTTPS
+- **Docker inside LXC** — running Docker Compose stacks in containers
+
+These guides will build on everything covered in this foundation series.
+
+## Resources
+
+- [Proxmox VE Backup and Restore](https://pve.proxmox.com/wiki/Backup_and_Restore)
+- [vzdump Manual Page](https://pve.proxmox.com/pve-docs/vzdump.1.html)
+- [Proxmox VE Administration Guide — Backup](https://pve.proxmox.com/pve-docs/chapter-vzdump.html)

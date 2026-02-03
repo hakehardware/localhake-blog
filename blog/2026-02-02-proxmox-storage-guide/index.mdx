@@ -1,0 +1,306 @@
+---
+title: "Proxmox VE Storage Explained — Disks, ZFS, LVM, and Network Mounts"
+slug: proxmox-storage-guide
+authors: [hake]
+tags: [tutorial, proxmox, homelab]
+date: 2026-02-02
+difficulty: 2
+time: 25
+draft: true
+---
+
+<InfoCard difficulty={2} time={25} />
+
+Proxmox comes with usable storage out of the box, but once you start adding disks or want to share storage across your network, it helps to understand how the storage system actually works. In this guide, we'll break down the default storage layout, add a second disk, explore ZFS and LVM, and set up NFS and SMB network mounts — all from the web interface and command line.
+
+{/* truncate */}
+
+## Prerequisites
+
+- A working Proxmox VE 9.x installation with the [post-install steps](/blog/proxmox-post-install-guide) completed
+- Familiarity with [creating containers](/blog/proxmox-create-lxc-container) and [VMs](/blog/proxmox-create-virtual-machine)
+
+## How Proxmox Storage Works
+
+Proxmox separates storage into two concepts:
+
+- **Physical storage** — the actual disks in your machine
+- **Storage backends** — how Proxmox uses those disks (LVM, ZFS, directories, network mounts)
+
+Each storage backend is configured to accept certain **content types**:
+
+| Content Type | What It Stores |
+|-------------|---------------|
+| **Disk image** | VM virtual disks |
+| **Container** | LXC root filesystems |
+| **ISO image** | OS installation ISOs |
+| **CT template** | Container templates |
+| **VZDump backup** | Backup files |
+| **Snippets** | Hook scripts, cloud-init configs |
+
+A single storage backend can support multiple content types, or you can split them across different backends. The default setup does this for you.
+
+## Understanding the Default Layout
+
+### ext4/XFS Installation (LVM)
+
+If you installed Proxmox with the default ext4 filesystem, the installer created an LVM volume group called `pve` with two storage entries:
+
+| Storage | Backend | Path/VG | Content |
+|---------|---------|---------|---------|
+| **local** | Directory | `/var/lib/vz` | ISOs, templates, backups, snippets |
+| **local-lvm** | LVM-Thin | `pve/data` | VM disks, container volumes |
+
+Check this from the command line:
+
+```bash
+# View LVM volume groups
+vgs
+
+# View logical volumes
+lvs
+
+# View storage configuration
+pvesm status
+```
+
+### ZFS Installation
+
+If you installed with ZFS, you'll see:
+
+| Storage | Backend | Pool | Content |
+|---------|---------|------|---------|
+| **local** | Directory | `/var/lib/vz` | ISOs, templates, backups, snippets |
+| **local-zfs** | ZFS Pool | `rpool/data` | VM disks, container volumes |
+
+```bash
+# View ZFS pools
+zpool list
+
+# View ZFS datasets
+zfs list
+```
+
+### What Goes Where
+
+The split is intentional:
+
+- **local** stores files you upload or download (ISOs, templates) and backup archives — things accessed as regular files
+- **local-lvm** or **local-zfs** stores VM and container disk images — things managed as block devices or datasets with snapshot support
+
+:::tip
+When creating a VM or container, Proxmox automatically offers the right storage for each purpose. You'll select `local` for the ISO/template and `local-lvm` or `local-zfs` for the disk. The defaults work.
+:::
+
+## Adding a Second Disk
+
+Most homelab machines have room for a second NVMe or SSD. Here's how to put it to use.
+
+### Option A: ZFS Pool (Recommended)
+
+ZFS is the best choice if you want snapshots, compression, and data integrity checking. It works on a single disk — you don't need multiple disks for ZFS to be useful.
+
+#### Via the Web Interface
+
+1. Go to your node → **Disks** to confirm the disk is visible and unused
+2. Go to **Disks** → **ZFS** → **Create: ZFS**
+3. Configure:
+
+| Field | Value |
+|-------|-------|
+| **Name** | `data-pool` (or whatever you like) |
+| **RAID Level** | `Single Disk` (for one disk) |
+| **Compression** | `lz4` (fast, good compression) |
+| **Device** | Select your second disk |
+
+4. Click **Create**
+
+Proxmox automatically adds this as a storage backend. You'll see `data-pool` in the storage list, configured for VM disks and container volumes.
+
+#### Via the Command Line
+
+```bash
+# Create a ZFS pool on /dev/nvme1n1 (adjust for your disk)
+zpool create -f -o ashift=12 data-pool /dev/nvme1n1
+
+# Enable compression
+zfs set compression=lz4 data-pool
+
+# Add it to Proxmox storage
+pvesm add zfspool data-pool -pool data-pool -content images,rootdir
+```
+
+### Option B: LVM-Thin
+
+If you prefer LVM or your system already uses it:
+
+```bash
+# Create a physical volume
+pvcreate /dev/nvme1n1
+
+# Create a volume group
+vgcreate data-vg /dev/nvme1n1
+
+# Create a thin pool using most of the space
+lvcreate -l 95%FREE -T data-vg/data-pool
+
+# Add to Proxmox storage
+pvesm add lvmthin data-lvm -thinpool data-pool -vgname data-vg -content images,rootdir
+```
+
+### Option C: Directory Storage
+
+The simplest option — format the disk and mount it as a directory. No snapshots, but it can store anything.
+
+```bash
+# Create a partition and format it
+mkfs.ext4 /dev/nvme1n1
+
+# Create a mount point
+mkdir -p /mnt/data
+
+# Add to /etc/fstab for persistent mounting
+echo '/dev/nvme1n1 /mnt/data ext4 defaults 0 2' >> /etc/fstab
+
+# Mount it
+mount -a
+
+# Add to Proxmox
+pvesm add dir data-dir -path /mnt/data -content iso,vztmpl,backup,images,rootdir
+```
+
+:::warning
+If you use directory storage for VM disks, they'll be stored as qcow2 files. This works but is slower than LVM-Thin or ZFS for I/O-heavy workloads.
+:::
+
+## Choosing a Storage Backend
+
+| Feature | Directory | LVM-Thin | ZFS |
+|---------|-----------|----------|-----|
+| Snapshots | qcow2 only | Yes | Yes |
+| Compression | No | No | Yes (lz4/zstd) |
+| Data integrity | No | No | Yes (checksums) |
+| Thin provisioning | qcow2 only | Yes | Yes |
+| Shared (multi-node) | No | No | No |
+| Complexity | Low | Medium | Medium |
+| RAM overhead | None | None | ~1GB per TB |
+| Best for | ISOs, backups, simple setups | VM/CT disks | VM/CT disks, data you care about |
+
+**For a single-disk homelab:** the defaults (LVM-Thin or ZFS from the installer) are fine.
+
+**For a second disk:** ZFS with lz4 compression is the best all-around choice.
+
+## Network Storage: NFS
+
+NFS lets you mount a remote share from another machine (a NAS, another server, etc.) and use it for ISOs, backups, or even VM disks.
+
+### Adding an NFS Share via the Web Interface
+
+1. Go to **Datacenter** → **Storage** → **Add** → **NFS**
+2. Configure:
+
+| Field | Value |
+|-------|-------|
+| **ID** | `nas-backups` (a name for this storage) |
+| **Server** | IP of your NFS server (e.g., `192.168.1.50`) |
+| **Export** | The NFS export path (e.g., `/mnt/pool/backups`) |
+| **Content** | Select what you want to store (Backups, ISOs, etc.) |
+
+3. Click **Add**
+
+Proxmox will mount it automatically and show it in the storage list.
+
+### Adding an NFS Share via CLI
+
+```bash
+pvesm add nfs nas-backups -server 192.168.1.50 -export /mnt/pool/backups -content backup,iso
+```
+
+### Verifying the Mount
+
+```bash
+# Check that it's mounted
+df -h | grep nas
+
+# Check Proxmox sees it
+pvesm status
+```
+
+:::tip
+NFS is great for backup storage — it keeps your backups on a separate machine. If your Proxmox host dies, your backups survive on the NAS.
+:::
+
+## Network Storage: SMB/CIFS
+
+SMB (also called CIFS) works the same way as NFS but is more common in Windows and mixed environments.
+
+### Adding an SMB Share via the Web Interface
+
+1. Go to **Datacenter** → **Storage** → **Add** → **SMB/CIFS**
+2. Configure:
+
+| Field | Value |
+|-------|-------|
+| **ID** | `nas-smb` |
+| **Server** | IP of your SMB server |
+| **Share** | The share name (e.g., `proxmox-backups`) |
+| **Username** | SMB username |
+| **Password** | SMB password |
+| **Content** | Select content types |
+
+3. Click **Add**
+
+### Adding an SMB Share via CLI
+
+```bash
+pvesm add cifs nas-smb -server 192.168.1.50 -share proxmox-backups -username backupuser -password yourpassword -content backup,iso
+```
+
+## Managing Storage
+
+### Useful Commands
+
+```bash
+# List all configured storage
+pvesm status
+
+# View storage configuration details
+cat /etc/pve/storage.cfg
+
+# Check disk usage on a specific storage
+pvesm list local
+
+# Remove a storage backend (does NOT delete data)
+pvesm remove data-pool
+```
+
+### Moving VM/Container Disks Between Storage
+
+If you add a new, faster storage backend and want to move existing VMs to it:
+
+**Web interface:** Select the VM/CT → **Hardware** → select the disk → **Disk Action** → **Move Storage** → choose the target
+
+**CLI (VMs):**
+
+```bash
+qm move-disk 200 scsi0 data-pool
+```
+
+**CLI (Containers):**
+
+```bash
+pct move-volume 100 rootfs data-pool
+```
+
+## What's Next
+
+With storage configured, you can now set up network segmentation to isolate different types of traffic:
+
+- **[Networking — VLANs, Bridges, and Firewall](/blog/proxmox-networking-guide)** — segment your network for better security and organization
+- **[Backups — Scheduling and Restoring](/blog/proxmox-backup-guide)** — protect your VMs and containers
+
+## Resources
+
+- [Proxmox VE Storage Documentation](https://pve.proxmox.com/wiki/Storage)
+- [Proxmox VE Storage Manager (pvesm)](https://pve.proxmox.com/pve-docs/pvesm.1.html)
+- [ZFS on Linux](https://pve.proxmox.com/wiki/ZFS_on_Linux)
