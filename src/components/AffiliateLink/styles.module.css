@@ -1,0 +1,126 @@
+/**
+ * AffiliateLink Component Styles
+ * Implements affiliate link styling with FTC disclosure and error states
+ * Uses Amazon-inspired orange color to distinguish affiliate links
+ */
+
+/* Wrapper for the affiliate link and tooltip */
+.affiliateLinkWrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+/* Main affiliate link styling - Amazon orange color */
+.affiliateLink {
+  display: inline;
+  font-family: var(--ifm-font-family-monospace);
+  color: #ff9900; /* Amazon orange */
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.affiliateLink:hover {
+  color: #e68a00; /* Darker orange on hover */
+  text-decoration: underline;
+}
+
+.affiliateLink:focus {
+  outline: 2px solid #ff9900;
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* Dark mode - slightly brighter orange for better contrast */
+[data-theme='dark'] .affiliateLink {
+  color: #ffad33; /* Brighter orange for dark mode */
+}
+
+[data-theme='dark'] .affiliateLink:hover {
+  color: #ffc266; /* Even brighter on hover */
+}
+
+[data-theme='dark'] .affiliateLink:focus {
+  outline-color: #ffad33;
+}
+
+/* Disclosure tooltip - appears on hover/focus */
+.tooltip {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 0.5rem 0.75rem;
+  background-color: var(--ifm-color-emphasis-800);
+  color: var(--ifm-color-emphasis-100);
+  font-family: var(--ifm-font-family-base);
+  font-size: 0.75rem;
+  line-height: 1.4;
+  white-space: nowrap;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  z-index: 100;
+  
+  /* Hidden by default */
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.2s ease, visibility 0.2s ease;
+  
+  /* Position above with small gap */
+  margin-bottom: 0.5rem;
+}
+
+/* Tooltip arrow */
+.tooltip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 6px solid transparent;
+  border-top-color: var(--ifm-color-emphasis-800);
+}
+
+/* Show tooltip on wrapper hover */
+.affiliateLinkWrapper:hover .tooltip,
+.affiliateLinkWrapper:focus-within .tooltip {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* Dark mode tooltip styling */
+[data-theme='dark'] .tooltip {
+  background-color: var(--ifm-color-emphasis-200);
+  color: var(--ifm-color-emphasis-900);
+}
+
+[data-theme='dark'] .tooltip::after {
+  border-top-color: var(--ifm-color-emphasis-200);
+}
+
+/* Error message styling - matches YouTube component error pattern */
+.affiliateLinkError {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0.5rem;
+  background-color: var(--ifm-color-danger-contrast-background);
+  border: 1px solid var(--ifm-color-danger-dark);
+  border-radius: 4px;
+  color: var(--ifm-color-danger-darkest);
+  font-family: var(--ifm-font-family-monospace);
+  font-size: 0.875rem;
+}
+
+/* Dark mode error styling */
+[data-theme='dark'] .affiliateLinkError {
+  background-color: rgba(255, 0, 0, 0.1);
+  border-color: var(--ifm-color-danger);
+  color: var(--ifm-color-danger-light);
+}
+
+.errorIcon {
+  font-size: 1rem;
+  flex-shrink: 0;
+}

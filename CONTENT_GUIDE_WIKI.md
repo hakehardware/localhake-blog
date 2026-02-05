@@ -639,6 +639,79 @@ Always run `pnpm build` before committing to catch broken links. The build will 
 
 ---
 
+## Custom Components
+
+The wiki uses custom React components that are globally available in all MDX files. These components are registered in `src/theme/MDXComponents.tsx` and can be used without imports.
+
+### AffiliateLink
+
+The `AffiliateLink` component renders Amazon affiliate links with proper FTC disclosure, accessibility attributes, and consistent styling. Use this when recommending products or equipment in your wiki documentation.
+
+#### Props
+
+| Prop | Type | Required | Description |
+|------|------|----------|-------------|
+| `url` | `string` | Yes | Amazon URL (short URL like `amzn.to/xxx` or full product URL) |
+| `title` | `string` | No | Product title to display as link text. Defaults to "View on Amazon" |
+
+#### Supported URL Formats
+
+| Format | Example |
+|--------|---------|
+| Short URL | `https://amzn.to/3xYz123` |
+| US Product | `https://www.amazon.com/dp/B08N5WRWNW` |
+| UK Product | `https://www.amazon.co.uk/dp/B08N5WRWNW` |
+| Other regions | `https://www.amazon.de/dp/...`, `https://www.amazon.ca/dp/...`, etc. |
+
+#### Usage Examples
+
+**Basic usage:**
+
+```md
+<AffiliateLink url="https://amzn.to/3xYz123" title="UniFi Switch 24 PoE" />
+```
+
+**In equipment documentation:**
+
+```md title="docs/equipment/networking.md"
+## Network Switch
+
+The main network switch is a <AffiliateLink url="https://amzn.to/abc123" title="UniFi Switch 24 PoE" />.
+
+### Specifications
+
+| Property | Value |
+|----------|-------|
+| Model | USW-24-POE |
+| Ports | 24x 1GbE, 2x 10G SFP+ |
+| PoE Budget | 95W |
+```
+
+**In a hardware specifications table:**
+
+```md title="docs/hosts/proxmox-server.md"
+## Hardware
+
+| Component | Model | Link |
+|-----------|-------|------|
+| CPU | Intel i7-12700 | - |
+| RAM | 64GB DDR4 | <AffiliateLink url="https://amzn.to/def456" title="Crucial 64GB Kit" /> |
+| NVMe | Samsung 980 Pro 2TB | <AffiliateLink url="https://amzn.to/ghi789" title="Samsung 980 Pro" /> |
+```
+
+:::tip Best Practice
+Always provide a descriptive `title` prop that identifies the product. This improves accessibility and helps readers understand what they're clicking on.
+:::
+
+#### Behavior Notes
+
+- **FTC Disclosure**: A tooltip with "As an Amazon Associate, I earn from qualifying purchases." appears on hover
+- **Visual Indicator**: Links are styled in orange to distinguish them from regular links (Amazon-inspired color)
+- **Accessibility**: Includes `aria-label` describing the affiliate nature and that it opens in a new tab
+- **Error Handling**: Invalid URLs display a user-friendly error message
+
+---
+
 ## Docusaurus Features
 
 Docusaurus provides several built-in features that enhance your wiki documentation. These features are available in all Markdown files without any imports.

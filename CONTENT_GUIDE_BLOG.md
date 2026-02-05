@@ -181,6 +181,40 @@ videoUrl: https://youtu.be/dQw4w9WgXcQ
 | `difficulty` | number (1-5) | Tutorial difficulty level. 1 = Beginner, 5 = Expert. Used by InfoCard component. |
 | `time` | number | Estimated completion time in minutes. Used by InfoCard component. |
 | `videoUrl` | string | YouTube video URL for the companion video. Used by InfoCard component. Supports multiple URL formats. |
+| `draft` | boolean | Set to `true` to hide the post from production builds. Draft posts are visible in dev mode but not published. |
+
+### Draft Posts
+
+Use `draft: true` in front matter to prepare posts without publishing them:
+
+```yaml
+---
+title: "Your Post Title"
+slug: your-post-slug
+authors: [hake]
+tags: [tutorial]
+date: 2024-06-15
+draft: true
+---
+```
+
+**When to use drafts:**
+
+- **Waiting for YouTube video**: Write the blog post first, set `draft: true`, then remove it once the video is uploaded and `videoUrl` is added
+- **Work in progress**: Posts that need more content or review before publishing
+- **Scheduled content**: Posts written ahead of time for a future release
+
+**Workflow for video companion posts:**
+
+1. Write the blog post with `draft: true`
+2. Record and upload the YouTube video
+3. Add the `videoUrl` to front matter and InfoCard
+4. Remove `draft: true` (or set to `false`)
+5. Commit and push to publish
+
+:::tip
+Draft posts appear normally in `pnpm start` (dev mode) so you can preview them. They're excluded only from production builds (`pnpm build`).
+:::
 
 ### SEO Fields
 
@@ -442,6 +476,98 @@ If an invalid URL is provided, the component displays an error message:
 
 <YouTube url="https://example.com/video" />
 {/* Displays: ⚠️ URL is not a YouTube link */}
+```
+
+---
+
+### AffiliateLink
+
+The `AffiliateLink` component renders Amazon affiliate links with proper FTC disclosure, accessibility attributes, and consistent styling. It includes a visible affiliate indicator and a hover tooltip with the required disclosure text.
+
+#### Props
+
+| Prop | Type | Required | Description |
+|------|------|----------|-------------|
+| `url` | `string` | Yes | Amazon URL (short URL like `amzn.to/xxx` or full product URL) |
+| `title` | `string` | No | Product title to display as link text. Defaults to "View on Amazon" |
+
+#### Supported URL Formats
+
+The component accepts multiple Amazon URL formats:
+
+| Format | Example |
+|--------|---------|
+| Short URL | `https://amzn.to/3xYz123` |
+| US Product | `https://www.amazon.com/dp/B08N5WRWNW` |
+| UK Product | `https://www.amazon.co.uk/dp/B08N5WRWNW` |
+| Other regions | `https://www.amazon.de/dp/...`, `https://www.amazon.ca/dp/...`, etc. |
+| Smile URLs | `https://smile.amazon.com/dp/B08N5WRWNW` |
+
+#### Usage Examples
+
+**Basic usage with short URL:**
+
+```mdx
+<AffiliateLink url="https://amzn.to/3xYz123" />
+```
+
+**With custom product title (recommended):**
+
+```mdx
+<AffiliateLink url="https://amzn.to/3xYz123" title="Raspberry Pi 5 8GB" />
+```
+
+**Inline within text:**
+
+```mdx
+I recommend the <AffiliateLink url="https://amzn.to/3xYz123" title="Raspberry Pi 5" /> for this project.
+```
+
+**Full product URL:**
+
+```mdx
+<AffiliateLink url="https://www.amazon.com/dp/B0CPWH8FL9" title="Samsung 990 Pro 2TB NVMe" />
+```
+
+#### Real Example in a Blog Post
+
+```mdx title="blog/2024-06-15-homelab-hardware/index.mdx"
+## Recommended Hardware
+
+For this build, you'll need the following components:
+
+- **SBC**: <AffiliateLink url="https://amzn.to/abc123" title="Raspberry Pi 5 8GB" />
+- **Storage**: <AffiliateLink url="https://amzn.to/def456" title="Samsung 256GB microSD" />
+- **Power**: <AffiliateLink url="https://amzn.to/ghi789" title="Official Raspberry Pi 5 Power Supply" />
+
+:::tip
+The Raspberry Pi 5 runs significantly cooler with the official active cooler case.
+:::
+```
+
+:::tip Best Practice
+Always provide a descriptive `title` prop that identifies the product. This improves accessibility and helps readers understand what they're clicking on.
+:::
+
+#### Behavior Notes
+
+- **FTC Disclosure**: A tooltip with "As an Amazon Associate, I earn from qualifying purchases." appears on hover
+- **Visual Indicator**: Links are styled in orange to distinguish them from regular links (Amazon-inspired color)
+- **Accessibility**: Includes `aria-label` describing the affiliate nature and that it opens in a new tab
+- **Security**: Links include `rel="noopener sponsored"` and `target="_blank"` attributes
+- **Error Handling**: Invalid URLs display a user-friendly error message instead of a broken link
+
+#### Error Display
+
+If an invalid URL is provided, the component displays an error message:
+
+```mdx
+{/* This will show an error */}
+<AffiliateLink url="not-a-valid-url" />
+{/* Displays: ⚠️ Invalid URL format */}
+
+<AffiliateLink url="https://example.com/product" />
+{/* Displays: ⚠️ URL is not an Amazon link */}
 ```
 
 ---
@@ -1222,6 +1348,7 @@ Before publishing your blog post, verify the following:
 - [ ] **Authors**: Does the author ID exist in `authors.yml`?
 - [ ] **Tags**: Are tags lowercase and consistent with existing tags?
 - [ ] **Date**: Is the date correct and in `YYYY-MM-DD` format?
+- [ ] **Draft**: Is `draft: true` removed (or set to `false`) if ready to publish?
 - [ ] **Optional fields**: If using InfoCard, are `difficulty`, `time`, and `videoUrl` set?
 
 ### SEO Fields

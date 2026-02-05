@@ -19,7 +19,7 @@ All the physical hardware in the homelab — mini PCs, NAS, networking gear, and
 
 ## Design Philosophy
 
-The homelab runs entirely on mini PCs and a consumer NAS housed in a TecMojo 42U rack. No enterprise rack servers — just low-power, quiet hardware that keeps power consumption and noise minimal.
+The homelab runs entirely on mini PCs and a consumer NAS housed in a <AffiliateLink url="https://amzn.to/3O2NWQc" title="TecMojo 42U rack" />. No enterprise rack servers — just low-power, quiet hardware that keeps power consumption and noise minimal.
 
 | Goal | Approach |
 |------|----------|

@@ -23,6 +23,8 @@ All homelab compute runs on mini PCs and a UGREEN NAS. No rack servers.
 
 ### GMKtec EVO-X2 (roci)
 
+<AffiliateLink url="https://amzn.to/4arYWPQ" title="GMKtec EVO-X2 on Amazon" />
+
 The standout piece of hardware in the homelab. The AMD Ryzen AI Max+ 395 has:
 
 - **16 cores / 32 threads** at up to 5.1GHz (Zen 5)
@@ -33,6 +35,8 @@ The standout piece of hardware in the homelab. The AMD Ryzen AI Max+ 395 has:
 This makes it capable of running 70B+ parameter LLMs locally. The 128GB unified memory is the key — it allows the iGPU to access ~115GB of GTT memory for model inference.
 
 ### UGREEN 6-Bay NAS (tycho)
+
+<AffiliateLink url="https://amzn.to/4btT4GR" title="UGREEN NASync DXP6800 Plus on Amazon" /> (I have the Pro model with 1245U; the Plus with 1215U is similar)
 
 A consumer NAS repurposed as a Proxmox host:
 
